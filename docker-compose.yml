@@ -1,0 +1,15 @@
+version: "3.9"
+services:
+  backend:
+    build: ./rentMe_backend
+    container_name: rentme-backend
+    ports:
+      - "8080:8080"
+  
+  frontend:
+    build: ./rentMe_frontend
+    container_name: rentme-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
