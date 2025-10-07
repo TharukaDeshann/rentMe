@@ -5,6 +5,12 @@ services:
     container_name: rentme-backend
     ports:
       - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: ${DATABASE_URL}
+      SPRING_DATASOURCE_USERNAME: ${DATABASE_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${DATABASE_PASSWORD}
+    depends_on:
+      - postgres
   
   frontend:
     build: ./rentMe_frontend
@@ -13,3 +19,12 @@ services:
       - "3000:80"
     depends_on:
       - backend
+  postgres:
+    image: postgres:18-alpine
+    container_name: rentme-db
+    environment:
+      POSTGRES_DB: ${DATABASE_NAME}
+      POSTGRES_USER: ${DATABASE_USERNAME}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+    ports:
+      - "5432:5432"
