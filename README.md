@@ -13,13 +13,32 @@ This repository contains a Spring Boot backend (`rentMe_backend`) and a Next.js 
 - Database: PostgreSQL (optional local service in Docker Compose; can use Supabase cloud)
 - Containerization: Docker & Docker Compose
 
-## 🧩 Folder Structure
+## 🗂️ Project structure
 
+A concise, copy-paste-friendly tree of the repository layout:
+
+```
 rentMe/
-├── rentMe_backend/ # Spring Boot backend (Maven)
-├── rentMe_frontend/ # Next.js frontend
-├── docker-compose.yml # Multi-container orchestration (backend, frontend, optional postgres)
-└── README.md # This file
+├─ rentMe_backend/        # Spring Boot backend (Maven project)
+│  ├─ src/                # Java source files
+│  ├─ target/             # Maven build artifacts (JARs)
+│  ├─ pom.xml             # Maven configuration
+│  ├─ Dockerfile          # Backend Dockerfile
+│  └─ .env                # Local env (dev only; do NOT commit)
+├─ rentMe_frontend/       # Next.js frontend
+│  ├─ public/             # Static assets
+│  ├─ src/                # Pages / components
+│  ├─ next.config.js      # Next.js config
+│  ├─ Dockerfile          # Frontend Dockerfile (Nginx-based)
+│  └─ package.json        # Node deps & scripts
+├─ docker-compose.yml     # Compose file to run full stack locally
+└─ README.md              # Project documentation (this file)
+```
+
+Notes:
+
+- Keep secrets out of the repo: add `.env` to `.gitignore`.
+- Build artifacts (the `target/` folder) should not be committed.
 
 ## ⚙️ Prerequisites
 
@@ -207,28 +226,7 @@ Tell me which of those you'd like me to do next.
 
 ---
 
-## 🗂️ Folder Structure
-
-rentMe/
-├── rentMe_backend/ # Spring Boot backend
-│ ├── src/ # Java source files
-│ ├── target/ # Maven build artifacts
-│ ├── pom.xml # Maven project configuration
-│ ├── Dockerfile # Backend Dockerfile
-│ └── .env # Backend environment variables (PostgreSQL)
-│
-├── rentMe_frontend/ # Next.js frontend
-│ ├── public/ # Static assets
-│ ├── src/ # Pages and components
-│ ├── next.config.js # Next.js configuration
-│ ├── Dockerfile # Frontend Dockerfile (Nginx-based)
-│ └── package.json # Node dependencies
-│
-├── docker-compose.yml # Multi-container orchestration
-└── README.md # Project documentation
-
-yaml
-Copy code
+> See the "Project structure" section above for a clean layout of the repository.
 
 ---
 
