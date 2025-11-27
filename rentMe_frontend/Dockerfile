@@ -6,7 +6,7 @@ WORKDIR /app
 
 # Copy package files and install dependencies
 COPY package*.json ./
-RUN npm install
+RUN npm ci
 
 # Copy all source code
 COPY . .
@@ -14,20 +14,22 @@ COPY . .
 # Build the app for production
 RUN npm run build
 
-# -------- Stage 2: Serve with Nginx --------
-FROM nginx:stable-alpine
+# -------- Stage 2: Run the Next.js app --------
+FROM node:22-alpine AS runner
 
-# Copy built static files to Nginx's html directory
-# Next.js exports to .next/static and .next/server/app (for static sites)
-# If you’re using "next export", replace the path with "out/"
-COPY --from=builder /app/.next /usr/share/nginx/html/.next
-COPY --from=builder /app/public /usr/share/nginx/html/public
+WORKDIR /app
 
-# Copy a custom Nginx config for Next.js routing
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Set to production environment
+ENV NODE_ENV=production
 
-# Expose the port Nginx serves on
-EXPOSE 80
+# Copy necessary files from builder
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package.json ./package.json
 
-# Start Nginx
-CMD ["nginx", "-g", "daemon off;"]
+# Expose the port Next.js runs on
+EXPOSE 3000
+
+# Start Next.js
+CMD ["npm", "start"]
