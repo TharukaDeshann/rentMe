@@ -6,33 +6,45 @@ import lombok.Data;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Map;
 
 /**
  * Adapter class that converts our User entity to Spring Security's UserDetails
- * interface.
+ * interface. Also implements OAuth2User for OAuth2 authentication support.
  * This is the Adapter Design Pattern in action!
  */
 @Data
 @AllArgsConstructor
-public class UserDetailsImpl implements UserDetails {
+public class UserDetailsImpl implements UserDetails, OAuth2User {
 
     private Long id;
     private String email;
     private String password;
     private String role;
     private Boolean isActive;
+    private Map<String, Object> attributes; // OAuth2 attributes
 
-    // Factory method to create UserDetailsImpl from User entity
+    // Factory method to create UserDetailsImpl from User entity (for local auth)
     public static UserDetailsImpl build(User user) {
         return new UserDetailsImpl(
                 user.getUserId(),
                 user.getEmail(),
                 user.getPassword(),
                 user.getRole().name(),
-                user.getIsActive());
+                user.getIsActive(),
+                null); // No OAuth2 attributes for local auth
+    }
+
+    // Factory method to create UserDetailsImpl from User entity with OAuth2
+    // attributes
+    public static UserDetailsImpl create(User user, Map<String, Object> attributes) {
+        UserDetailsImpl userDetails = build(user);
+        userDetails.setAttributes(attributes);
+        return userDetails;
     }
 
     @Override
@@ -72,5 +84,16 @@ public class UserDetailsImpl implements UserDetails {
     @Override
     public boolean isEnabled() {
         return isActive; // Account is enabled if it's active
+    }
+
+    // OAuth2User methods
+    @Override
+    public Map<String, Object> getAttributes() {
+        return attributes;
+    }
+
+    @Override
+    public String getName() {
+        return String.valueOf(id); // Return user ID as name
     }
 }
