@@ -9,7 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/api/v1/auth")
 @CrossOrigin(origins = "*") // Allow frontend to call these endpoints
 public class AuthController {
 
@@ -18,7 +18,7 @@ public class AuthController {
 
     /**
      * Register a new user
-     * POST /api/auth/register
+     * POST /api/v1/auth/register
      */
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
@@ -32,7 +32,7 @@ public class AuthController {
 
     /**
      * Login with email and password
-     * POST /api/auth/login
+     * POST /api/v1/auth/login
      */
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest request) {
@@ -46,7 +46,7 @@ public class AuthController {
 
     /**
      * Google OAuth login
-     * POST /api/auth/google
+     * POST /api/v1/auth/google
      */
     @PostMapping("/google")
     public ResponseEntity<?> googleLogin(@RequestBody String googleToken) {
@@ -62,7 +62,7 @@ public class AuthController {
 
     /**
      * Test endpoint to verify authentication is working
-     * GET /api/auth/test
+     * GET /api/v1/auth/test
      */
     @GetMapping("/test")
     public ResponseEntity<String> test() {
