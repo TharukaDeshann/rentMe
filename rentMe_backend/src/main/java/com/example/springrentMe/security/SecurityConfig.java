@@ -2,8 +2,6 @@ package com.example.springrentMe.security;
 
 import com.example.springrentMe.security.oauth2.CustomOAuth2UserService;
 import com.example.springrentMe.security.oauth2.OAuth2LoginSuccessHandler;
-import com.example.springrentMe.security.oauth2.CustomOAuth2UserService;
-import com.example.springrentMe.security.oauth2.OAuth2LoginSuccessHandler;
 import com.example.springrentMe.utils.JwtAuthenticationFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -24,7 +22,6 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
  * Central Spring Security configuration.
  * Wires together: JWT filter, password encoder, authentication, and
  * authorization, plus OAuth2 support.
- * authorization, plus OAuth2 support.
  */
 @Configuration
 @EnableWebSecurity
@@ -36,12 +33,6 @@ public class SecurityConfig {
 
     @Autowired
     private JwtAuthenticationFilter jwtAuthenticationFilter;
-
-    @Autowired
-    private CustomOAuth2UserService customOAuth2UserService;
-
-    @Autowired
-    private OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
 
     @Autowired
     private CustomOAuth2UserService customOAuth2UserService;
@@ -78,27 +69,17 @@ public class SecurityConfig {
                         // Public endpoints (no authentication required)
                         .requestMatchers("/api/v1/auth/**").permitAll() // Login, register, OAuth
                         .requestMatchers("/api/v1/public/**").permitAll() // Public vehicle search
-                        .requestMatchers("/api/v1/auth/**").permitAll() // Login, register, OAuth
-                        .requestMatchers("/api/v1/public/**").permitAll() // Public vehicle search
                         .requestMatchers("/error").permitAll()
                         .requestMatchers("/oauth2/**").permitAll() // OAuth2 endpoints
 
                         // Admin-only endpoints
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
 
                         // Owner-only endpoints
-                        .requestMatchers("/api/v1/owner/**").hasRole("OWNER")
                         .requestMatchers("/api/v1/owner/**").hasRole("OWNER")
 
                         // All other endpoints require authentication
                         .anyRequest().authenticated())
-
-                // Configure OAuth2 login
-                .oauth2Login(oauth2 -> oauth2
-                        .userInfoEndpoint(userInfo -> userInfo
-                                .userService(customOAuth2UserService)) // Use our custom OAuth2 user service
-                        .successHandler(oAuth2LoginSuccessHandler)) // Use our custom success handler
 
                 // Configure OAuth2 login
                 .oauth2Login(oauth2 -> oauth2
