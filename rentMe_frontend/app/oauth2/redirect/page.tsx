@@ -3,6 +3,9 @@
 import { useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
+// Force dynamic rendering for this page (required for useSearchParams during build)
+export const dynamic = 'force-dynamic';
+
 /**
  * OAuth2 Redirect Handler (SECURE VERSION)
  * 
