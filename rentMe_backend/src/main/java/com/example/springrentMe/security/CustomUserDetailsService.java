@@ -2,7 +2,6 @@ package com.example.springrentMe.security;
 
 import com.example.springrentMe.models.User;
 import com.example.springrentMe.repositories.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
