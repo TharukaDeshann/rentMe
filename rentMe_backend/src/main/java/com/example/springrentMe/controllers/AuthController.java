@@ -13,8 +13,12 @@ import org.springframework.web.bind.annotation.*;
 @CrossOrigin(origins = "*") // Allow frontend to call these endpoints
 public class AuthController {
 
-    @Autowired
-    private AuthService authService;
+    
+    private final AuthService authService;
+
+    public AuthController(AuthService authService) {
+        this.authService = authService;
+    }
 
     /**
      * Register a new user

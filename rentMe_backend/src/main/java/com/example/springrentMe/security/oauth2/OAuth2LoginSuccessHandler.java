@@ -26,11 +26,14 @@ import java.io.IOException;
 @Component
 public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
-        @Autowired
-        private JwtTokenProvider jwtTokenProvider;
+        private final JwtTokenProvider jwtTokenProvider;
+        private final UserRepository userRepository;
 
-        @Autowired
-        private UserRepository userRepository;
+        public OAuth2LoginSuccessHandler(JwtTokenProvider jwtTokenProvider,
+                        UserRepository userRepository) {
+                this.jwtTokenProvider = jwtTokenProvider;
+                this.userRepository = userRepository;
+        }
 
         @Value("${FRONTEND_URL:http://localhost:3000}")
         private String frontendUrl;
