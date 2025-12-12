@@ -22,17 +22,21 @@ export default function LoginPage() {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include', // IMPORTANT: Include cookies in request
         body: JSON.stringify({ email, password }),
       });
 
       if (response.ok) {
         const data = await response.json();
         
-        // Store JWT token and user info
-        localStorage.setItem('jwt_token', data.token);
+        // JWT token is now in HTTP-only cookie (set by backend)
+        // User info is in non-HTTP-only cookie
+        // Store user info in localStorage for easy access
         localStorage.setItem('user_id', data.userId);
         localStorage.setItem('user_email', data.email);
         localStorage.setItem('user_role', data.role);
+
+        console.log('Login successful:', data);
 
         // Redirect to dashboard
         router.push('/dashboard');

@@ -12,31 +12,56 @@ export default function DashboardPage() {
   } | null>(null);
 
   useEffect(() => {
-    // Check if user is authenticated
-    const token = localStorage.getItem('jwt_token');
-    const userId = localStorage.getItem('user_id');
-    const email = localStorage.getItem('user_email');
-    const role = localStorage.getItem('user_role');
+    // Check if user is authenticated by checking cookies
+    const userInfoCookie = document.cookie
+      .split('; ')
+      .find(row => row.startsWith('user_info='));
 
-    if (!token) {
+    if (!userInfoCookie) {
       // Not authenticated, redirect to login
       router.push('/login');
       return;
     }
 
-    setUser({
-      userId: userId || '',
-      email: email || '',
-      role: role || '',
-    });
+    try {
+      // Decode URL-encoded cookie value
+      const encodedValue = userInfoCookie.split('=')[1];
+      const decodedValue = decodeURIComponent(encodedValue);
+      const userInfo = JSON.parse(decodedValue);
+      
+      setUser({
+        userId: userInfo.userId.toString(),
+        email: userInfo.email,
+        role: userInfo.role,
+      });
+
+      // Also store in localStorage for easy access
+      localStorage.setItem('user_id', userInfo.userId.toString());
+      localStorage.setItem('user_email', userInfo.email);
+      localStorage.setItem('user_role', userInfo.role);
+    } catch (error) {
+      console.error('Failed to parse user info:', error);
+      router.push('/login');
+    }
   }, [router]);
 
-  const handleLogout = () => {
-    localStorage.removeItem('jwt_token');
+  const handleLogout = async () => {
+    try {
+      // Call backend logout endpoint to clear cookies
+      await fetch('http://localhost:8080/api/v1/auth/logout', {
+        method: 'POST',
+        credentials: 'include', // Include cookies in request
+      });
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+
+    // Clear localStorage
     localStorage.removeItem('user_id');
     localStorage.removeItem('user_email');
     localStorage.removeItem('user_role');
-    document.cookie = 'jwt_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+
+    // Redirect to login
     router.push('/login');
   };
 

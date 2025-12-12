@@ -8,7 +8,6 @@ import com.example.springrentMe.models.User;
 import com.example.springrentMe.repositories.UserRepository;
 import com.example.springrentMe.security.UserDetailsImpl;
 import com.example.springrentMe.utils.JwtTokenProvider;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;

@@ -17,6 +17,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfigurationSource;
 
 /**
  * Central Spring Security configuration.
@@ -36,14 +37,18 @@ public class SecurityConfig {
 
     private final OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
 
+    private final CorsConfigurationSource corsConfigurationSource;
+
     public SecurityConfig(CustomUserDetailsService userDetailsService,
-                          JwtAuthenticationFilter jwtAuthenticationFilter,
-                          CustomOAuth2UserService customOAuth2UserService,
-                          OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler) {
+            JwtAuthenticationFilter jwtAuthenticationFilter,
+            CustomOAuth2UserService customOAuth2UserService,
+            OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler,
+            CorsConfigurationSource corsConfigurationSource) {
         this.userDetailsService = userDetailsService;
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.customOAuth2UserService = customOAuth2UserService;
         this.oAuth2LoginSuccessHandler = oAuth2LoginSuccessHandler;
+        this.corsConfigurationSource = corsConfigurationSource;
     }
 
     @Bean
@@ -67,6 +72,9 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
+                // Enable CORS with custom configuration
+                .cors(cors -> cors.configurationSource(corsConfigurationSource))
+
                 // Disable CSRF (not needed for stateless JWT authentication)
                 .csrf(csrf -> csrf.disable())
 
