@@ -4,7 +4,9 @@ import com.example.springrentMe.DTOs.AuthResponse;
 import com.example.springrentMe.DTOs.LoginRequest;
 import com.example.springrentMe.DTOs.RegisterRequest;
 import com.example.springrentMe.models.AuthProvider;
+import com.example.springrentMe.models.Renter;
 import com.example.springrentMe.models.User;
+import com.example.springrentMe.repositories.RenterRepository;
 import com.example.springrentMe.repositories.UserRepository;
 import com.example.springrentMe.security.UserDetailsImpl;
 import com.example.springrentMe.utils.JwtTokenProvider;
@@ -21,6 +23,8 @@ public class AuthService {
 
     private final UserRepository userRepository;
 
+    private final RenterRepository renterRepository;
+
     private final PasswordEncoder passwordEncoder;
 
     private final JwtTokenProvider jwtTokenProvider;
@@ -28,10 +32,12 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
 
     public AuthService(UserRepository userRepository,
-                       PasswordEncoder passwordEncoder,
-                       JwtTokenProvider jwtTokenProvider,
-                       AuthenticationManager authenticationManager) {
+            RenterRepository renterRepository,
+            PasswordEncoder passwordEncoder,
+            JwtTokenProvider jwtTokenProvider,
+            AuthenticationManager authenticationManager) {
         this.userRepository = userRepository;
+        this.renterRepository = renterRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtTokenProvider = jwtTokenProvider;
         this.authenticationManager = authenticationManager;
@@ -39,6 +45,7 @@ public class AuthService {
 
     /**
      * Register a new user with LOCAL authentication
+     * By default, every new user is registered as a RENTER
      */
     @Transactional
     public AuthResponse register(RegisterRequest request) {
@@ -58,8 +65,13 @@ public class AuthService {
         user.setIsActive(true);
         user.setEmailVerified(false); // Email verification can be added later
 
-        // Save to database
+        // Save user to database
         User savedUser = userRepository.save(user);
+
+        // Create corresponding Renter record (every user is a renter by default)
+        Renter renter = new Renter();
+        renter.setUser(savedUser);
+        renterRepository.save(renter);
 
         // Generate JWT token
         String token = jwtTokenProvider.generateTokenFromUsername(savedUser.getEmail());

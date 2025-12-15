@@ -1,7 +1,10 @@
 package com.example.springrentMe.security;
 
 import com.example.springrentMe.models.User;
+import com.example.springrentMe.repositories.AdminRepository;
+import com.example.springrentMe.repositories.RenterRepository;
 import com.example.springrentMe.repositories.UserRepository;
+import com.example.springrentMe.repositories.VehicleOwnerRepository;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -16,11 +19,19 @@ import org.springframework.transaction.annotation.Transactional;
 public class CustomUserDetailsService implements UserDetailsService {
 
     private final UserRepository userRepository;
+    private final RenterRepository renterRepository;
+    private final VehicleOwnerRepository vehicleOwnerRepository;
+    private final AdminRepository adminRepository;
 
-    public CustomUserDetailsService(UserRepository userRepository) {
+    public CustomUserDetailsService(UserRepository userRepository,
+            RenterRepository renterRepository,
+            VehicleOwnerRepository vehicleOwnerRepository,
+            AdminRepository adminRepository) {
         this.userRepository = userRepository;
+        this.renterRepository = renterRepository;
+        this.vehicleOwnerRepository = vehicleOwnerRepository;
+        this.adminRepository = adminRepository;
     }
-
 
     @Override
     @Transactional
@@ -30,7 +41,7 @@ public class CustomUserDetailsService implements UserDetailsService {
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
 
         // Step 2: Convert User entity → UserDetails (using Adapter pattern)
-        return UserDetailsImpl.build(user);
+        return buildUserDetails(user);
     }
 
     // Additional method to load user by ID (useful for token-based auth)
@@ -39,6 +50,24 @@ public class CustomUserDetailsService implements UserDetailsService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with id: " + id));
 
-        return UserDetailsImpl.build(user);
+        return buildUserDetails(user);
+    }
+
+    /**
+     * Build UserDetailsImpl with all applicable roles
+     */
+    private UserDetailsImpl buildUserDetails(User user) {
+        UserDetailsImpl userDetails = UserDetailsImpl.build(user);
+
+        // Check if user has renter role
+        userDetails.setHasRenterRole(renterRepository.existsByUser_UserId(user.getUserId()));
+
+        // Check if user has vehicle owner role
+        userDetails.setHasVehicleOwnerRole(vehicleOwnerRepository.existsByUser_UserId(user.getUserId()));
+
+        // Check if user has admin role
+        userDetails.setHasAdminRole(adminRepository.existsByUser_UserId(user.getUserId()));
+
+        return userDetails;
     }
 }

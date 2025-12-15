@@ -88,8 +88,11 @@ public class SecurityConfig {
                         // Admin-only endpoints
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
 
-                        // Owner-only endpoints
-                        .requestMatchers("/api/v1/owner/**").hasRole("OWNER")
+                        // Vehicle Owner-only endpoints
+                        .requestMatchers("/api/v1/owner/**").hasRole("VEHICLE_OWNER")
+
+                        // User endpoints - protected by @PreAuthorize annotations
+                        .requestMatchers("/api/v1/users/**").authenticated()
 
                         // All other endpoints require authentication
                         .anyRequest().authenticated())

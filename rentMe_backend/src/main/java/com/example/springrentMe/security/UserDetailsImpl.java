@@ -8,14 +8,15 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Adapter class that converts our User entity to Spring Security's UserDetails
  * interface. Also implements OAuth2User for OAuth2 authentication support.
  * This is the Adapter Design Pattern in action!
+ * 
+ * NOTE: A user can have multiple roles simultaneously (RENTER, VEHICLE_OWNER,
+ * ADMIN)
  */
 @Data
 @AllArgsConstructor
@@ -24,8 +25,11 @@ public class UserDetailsImpl implements UserDetails, OAuth2User {
     private Long id;
     private String email;
     private String password;
-    private String role;
+    private String role; // Primary role from User table
     private Boolean isActive;
+    private Boolean hasRenterRole;
+    private Boolean hasVehicleOwnerRole;
+    private Boolean hasAdminRole;
     private Map<String, Object> attributes; // OAuth2 attributes
 
     // Factory method to create UserDetailsImpl from User entity (for local auth)
@@ -36,6 +40,9 @@ public class UserDetailsImpl implements UserDetails, OAuth2User {
                 user.getPassword(),
                 user.getRole().name(),
                 user.getIsActive(),
+                false, // These will be set by CustomUserDetailsService
+                false,
+                false,
                 null); // No OAuth2 attributes for local auth
     }
 
@@ -49,10 +56,28 @@ public class UserDetailsImpl implements UserDetails, OAuth2User {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        // Convert our UserRole enum to Spring Security authority
-        // RENTER → ROLE_RENTER, OWNER → ROLE_OWNER, ADMIN → ROLE_ADMIN
-        return Collections.singletonList(
-                new SimpleGrantedAuthority("ROLE_" + role));
+        // Users can have multiple roles simultaneously
+        Set<GrantedAuthority> authorities = new HashSet<>();
+
+        // Every user has their primary role
+        authorities.add(new SimpleGrantedAuthority("ROLE_" + role));
+
+        // Add RENTER role if they have a renter record
+        if (hasRenterRole) {
+            authorities.add(new SimpleGrantedAuthority("ROLE_RENTER"));
+        }
+
+        // Add VEHICLE_OWNER role if they have a vehicle owner record
+        if (hasVehicleOwnerRole) {
+            authorities.add(new SimpleGrantedAuthority("ROLE_VEHICLE_OWNER"));
+        }
+
+        // Add ADMIN role if they have an admin record
+        if (hasAdminRole) {
+            authorities.add(new SimpleGrantedAuthority("ROLE_ADMIN"));
+        }
+
+        return authorities;
     }
 
     @Override

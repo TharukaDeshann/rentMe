@@ -23,14 +23,15 @@ public class VehicleOwner {
     @JoinColumn(name = "user_id", nullable = false, unique = true)
     private User user;
 
-    @Column(name = "is_verified", nullable = false)
-    private Boolean isVerified = false;
-
-    @Column(name = "verification_documents", length = 1000)
-    private String verificationDocuments; // JSON array of document URLs or comma-separated
+    // Store as JSON: {"idCardUrl": "...", "addressProofUrl": "...", "submittedAt": "..."}
+    @Column(name = "verification_documents", columnDefinition = "TEXT")
+    private String verificationDocuments;
 
     // Optional: Track verification status
     @Enumerated(EnumType.STRING)
     @Column(name = "verification_status")
     private VerificationStatus verificationStatus = VerificationStatus.PENDING;
+
+    @Column(name = "verification_notes")
+    private String verificationNotes; // Admin can add rejection reasons
 }
