@@ -6,10 +6,17 @@ import com.example.springrentMe.DTOs.RegisterRequest;
 import com.example.springrentMe.models.AuthProvider;
 import com.example.springrentMe.models.Renter;
 import com.example.springrentMe.models.User;
+import com.example.springrentMe.models.UserRole;
 import com.example.springrentMe.repositories.RenterRepository;
 import com.example.springrentMe.repositories.UserRepository;
 import com.example.springrentMe.security.UserDetailsImpl;
 import com.example.springrentMe.utils.JwtTokenProvider;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken.Payload;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.json.gson.GsonFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -17,6 +24,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Collections;
+import java.util.Optional;
 
 @Service
 public class AuthService {
@@ -30,6 +40,9 @@ public class AuthService {
     private final JwtTokenProvider jwtTokenProvider;
 
     private final AuthenticationManager authenticationManager;
+
+    @Value("${spring.security.oauth2.client.registration.google.client-id}")
+    private String googleClientId;
 
     public AuthService(UserRepository userRepository,
             RenterRepository renterRepository,
@@ -113,13 +126,94 @@ public class AuthService {
 
     /**
      * Handle Google OAuth login
-     * (Implementation depends on OAuth flow - we'll add this later)
+     * Verifies Google ID token, creates/updates user, and generates JWT
+     * 
+     * @param googleToken The Google ID token from frontend
+     * @return AuthResponse containing JWT and user details
      */
     @Transactional
     public AuthResponse googleLogin(String googleToken) {
-        // TODO: Verify Google token, extract user info
-        // TODO: Check if user exists, if not create new user
-        // TODO: Generate JWT token
-        throw new UnsupportedOperationException("Google OAuth not yet implemented");
+        try {
+            // 1. Verify Google token and extract user info
+            GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(
+                    new NetHttpTransport(),
+                    GsonFactory.getDefaultInstance())
+                    .setAudience(Collections.singletonList(googleClientId))
+                    .build();
+
+            GoogleIdToken idToken = verifier.verify(googleToken);
+            if (idToken == null) {
+                throw new RuntimeException("Invalid Google token");
+            }
+
+            Payload payload = idToken.getPayload();
+
+            // Extract user information from Google token
+            String googleId = payload.getSubject(); // Unique Google user ID
+            String email = payload.getEmail();
+            String name = (String) payload.get("name");
+            String profilePicture = (String) payload.get("picture");
+            Boolean emailVerified = payload.getEmailVerified();
+
+            // 2. Check if user already exists
+            Optional<User> existingUserOpt = userRepository.findByEmail(email);
+            User user;
+
+            if (existingUserOpt.isPresent()) {
+                // User exists - update their information if needed
+                user = existingUserOpt.get();
+
+                // Update OAuth-related fields
+                if (user.getOauthId() == null) {
+                    user.setOauthId(googleId);
+                }
+                if (user.getAuthProvider() == AuthProvider.LOCAL) {
+                    // User previously used local auth, now using Google
+                    user.setAuthProvider(AuthProvider.GOOGLE);
+                }
+                if (user.getProfilePicture() == null && profilePicture != null) {
+                    user.setProfilePicture(profilePicture);
+                }
+                user.setEmailVerified(emailVerified != null ? emailVerified : true);
+
+                userRepository.save(user);
+            } else {
+                // 3. Create new user with Google OAuth
+                user = new User();
+                user.setFullName(name);
+                user.setEmail(email);
+                user.setPassword(null); // No password for OAuth users
+                user.setContactNumber(""); // Can be updated later in profile
+                user.setRole(UserRole.RENTER); // Default role
+                user.setAuthProvider(AuthProvider.GOOGLE);
+                user.setOauthId(googleId);
+                user.setProfilePicture(profilePicture);
+                user.setEmailVerified(emailVerified != null ? emailVerified : true);
+                user.setIsActive(true);
+
+                // Save user to database
+                User savedUser = userRepository.save(user);
+
+                // Create corresponding Renter record
+                Renter renter = new Renter();
+                renter.setUser(savedUser);
+                renterRepository.save(renter);
+
+                user = savedUser;
+            }
+
+            // 4. Generate JWT token for the user
+            String jwtToken = jwtTokenProvider.generateTokenFromUsername(user.getEmail());
+
+            // 5. Return response
+            return new AuthResponse(
+                    jwtToken,
+                    user.getUserId(),
+                    user.getEmail(),
+                    user.getRole().name());
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to authenticate with Google: " + e.getMessage(), e);
+        }
     }
 }
