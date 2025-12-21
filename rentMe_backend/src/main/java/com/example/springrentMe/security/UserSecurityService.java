@@ -1,7 +1,5 @@
 package com.example.springrentMe.security;
 
-import com.example.springrentMe.models.Admin;
-import com.example.springrentMe.models.Renter;
 import com.example.springrentMe.models.VehicleOwner;
 import com.example.springrentMe.models.VerificationStatus;
 import com.example.springrentMe.repositories.AdminRepository;
