@@ -4,39 +4,12 @@ import React from "react"
 import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import * as z from "zod"
+import { registrationSchema, RegistrationFormData } from "@/validations"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Car, Mail, Lock, Phone, User, Calendar, ArrowLeft } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-
-// Validation schema matching backend requirements
-const registrationSchema = z.object({
-  fullName: z.string()
-    .min(2, "Full name must be at least 2 characters")
-    .max(100, "Full name must not exceed 100 characters")
-    .regex(/^[a-zA-Z]+(([\',.\s-][a-zA-Z ])?[a-zA-Z]*)*$/, "Full name must contain only letters, spaces, hyphens, and apostrophes"),
-  email: z.string()
-    .email("Invalid email format")
-    .max(100, "Email must not exceed 100 characters"),
-  phoneNumber: z.string()
-    .regex(/^[+]?[0-9]{10,20}$/, "Contact number must be 10-20 digits, optionally starting with +"),
-  password: z.string()
-    .min(8, "Password must be at least 8 characters")
-    .max(128, "Password must not exceed 128 characters")
-    .regex(
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/,
-      "Password must contain at least one uppercase letter, one lowercase letter, one digit, and one special character (@$!%*?&)"
-    ),
-  confirmPassword: z.string(),
-  dateOfBirth: z.string().optional(),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords do not match",
-  path: ["confirmPassword"],
-})
-
-type RegistrationFormData = z.infer<typeof registrationSchema>
 
 interface RegistrationPageProps {
   onRegistrationSuccess: (formData: {

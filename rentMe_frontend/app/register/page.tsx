@@ -1,9 +1,12 @@
 'use client';
 
 import { RegistrationPage as RegistrationPageComponent } from '@/components/auth/registration-page';
+import { useAuth } from '@/contexts';
 import { useRouter } from 'next/navigation';
+import { RegisterRequest } from '@/types';
 
 export default function RegisterPage() {
+  const { register } = useAuth();
   const router = useRouter();
 
   const handleRegistrationSuccess = async (formData: {
@@ -14,39 +17,18 @@ export default function RegisterPage() {
     dateOfBirth?: string;
   }) => {
     try {
-      const response = await fetch('http://localhost:8080/api/v1/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          fullName: formData.fullName,
-          email: formData.email,
-          password: formData.password,
-          contactNumber: formData.phoneNumber,
-          role: 'RENTER',
-        }),
-      });
+      const registerData: RegisterRequest = {
+        fullName: formData.fullName,
+        email: formData.email,
+        password: formData.password,
+        contactNumber: formData.phoneNumber,
+        role: 'RENTER' as any,
+        dateOfBirth: formData.dateOfBirth,
+      };
 
-      if (response.ok) {
-        // Redirect to login page after successful registration
-        router.push('/login');
-      } else {
-        // Parse error response from backend
-        const errorData = await response.json();
-        
-        // Handle validation errors from backend
-        if (errorData.errors) {
-          // Format field-specific errors
-          const errorMessages = Object.entries(errorData.errors)
-            .map(([field, message]) => `${field}: ${message}`)
-            .join(', ');
-          throw new Error(errorMessages);
-        } else {
-          throw new Error(errorData.message || 'Registration failed. Please try again.');
-        }
-      }
+      // Use auth context register method
+      await register(registerData);
+      // Router redirect to /login is handled in AuthContext
     } catch (err: any) {
       throw err;
     }

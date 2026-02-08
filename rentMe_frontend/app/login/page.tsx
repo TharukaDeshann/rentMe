@@ -1,45 +1,18 @@
 'use client';
 
 import { LoginPage as LoginPageComponent } from '@/components/auth/login-page';
+import { useAuth } from '@/contexts';
 import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
+  const { login } = useAuth();
   const router = useRouter();
 
   const handleLoginSuccess = async (email: string, password: string) => {
     try {
-      const response = await fetch('http://localhost:8080/api/v1/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({ email, password }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        
-        localStorage.setItem('user_id', data.userId);
-        localStorage.setItem('user_email', data.email);
-        localStorage.setItem('user_role', data.role);
-
-        // Redirect based on role
-        switch (data.role) {
-          case 'ADMIN':
-            router.push('/dashboard?view=admin-dashboard');
-            break;
-          case 'VEHICLE_OWNER':
-            router.push('/dashboard?view=owner-dashboard');
-            break;
-          case 'RENTER':
-          default:
-            router.push('/dashboard?view=renter-browse');
-            break;
-        }
-      } else {
-        throw new Error('Invalid email or password');
-      }
+      // Use auth context login method which handles everything
+      await login({ email, password });
+      // Router redirect is handled in AuthContext based on user role
     } catch (err) {
       throw err;
     }
