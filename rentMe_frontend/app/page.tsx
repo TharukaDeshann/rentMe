@@ -17,10 +17,19 @@ import { Analytics } from "@/components/admin/analytics"
 import { UserMonitor } from "@/components/admin/user-monitor"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ChatbotFloatingIcon } from "@/components/chatbot/chatbot-floating-icon"
+import { LoginPage } from "@/components/auth/login-page"
+import { RegistrationPage } from "@/components/auth/registration-page"
+import { UserProfilePage } from "@/components/auth/user-profile-page"
+import { ProfileSidebar } from "@/components/auth/profile-sidebar"
+import { getCurrentUserInfo } from "@/utils/user-info" // Declare the variable here
 
 type UserRole = "renter" | "owner" | "admin"
+type AuthView = "login" | "register" | "app" | "profile"
 
 export default function Home() {
+  const [authView, setAuthView] = useState<AuthView>("login")
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [currentUser, setCurrentUser] = useState({ id: "", name: "", email: "", image: "/woman-profile.png" })
   const [currentRole, setCurrentRole] = useState<UserRole>("renter")
   const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null)
   const [showBookingForm, setShowBookingForm] = useState(false)
@@ -28,18 +37,90 @@ export default function Home() {
   const [showChatsList, setShowChatsList] = useState(false)
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null)
   const [currentView, setCurrentView] = useState<"browse" | "detail">("browse")
+  const [showProfileSidebar, setShowProfileSidebar] = useState(false)
+  const [profileData, setProfileData] = useState<any>(null)
 
-  const getCurrentUserInfo = () => {
-    if (currentRole === "renter") {
-      return { id: "renter-1", name: "Sarah Johnson" }
-    } else if (currentRole === "owner") {
-      return { id: "owner-1", name: "Alex Rodriguez" }
-    } else {
-      return { id: "admin-1", name: "Admin User" }
+  const handleLoginSuccess = async (email: string, password: string) => {
+    try {
+      const response = await fetch('http://localhost:8080/api/v1/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ email, password }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        localStorage.setItem('user_id', data.userId)
+        localStorage.setItem('user_email', data.email)
+        localStorage.setItem('user_role', data.role)
+        
+        setCurrentUser({ id: data.userId, name: data.email, email: data.email, image: "/woman-profile.png" })
+        setIsAuthenticated(true)
+        setAuthView("app")
+      } else {
+        throw new Error('Invalid email or password')
+      }
+    } catch (err) {
+      throw err
     }
   }
 
-  const currentUser = getCurrentUserInfo()
+  const handleRegistrationSuccess = async (formData: {
+    fullName: string;
+    email: string;
+    phoneNumber: string;
+    password: string;
+    dateOfBirth?: string;
+  }) => {
+    try {
+      const response = await fetch('http://localhost:8080/api/v1/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          fullName: formData.fullName,
+          email: formData.email,
+          password: formData.password,
+          contactNumber: formData.phoneNumber,
+          role: 'RENTER',
+        }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        localStorage.setItem('user_id', data.userId)
+        localStorage.setItem('user_email', data.email)
+        localStorage.setItem('user_role', data.role)
+        
+        setCurrentUser({ id: data.userId, name: formData.fullName, email: formData.email, image: "/woman-profile.png" })
+        setIsAuthenticated(true)
+        setAuthView("app")
+      } else {
+        const errorData = await response.text()
+        throw new Error(errorData || 'Registration failed. Please try again.')
+      }
+    } catch (err) {
+      throw err
+    }
+  }
+
+  const handleLogout = () => {
+    setIsAuthenticated(false)
+    setAuthView("login")
+    setShowProfileSidebar(false)
+  }
+
+  const handleDeleteProfile = () => {
+    setIsAuthenticated(false)
+    setAuthView("login")
+    setShowProfileSidebar(false)
+    setProfileData(null)
+  }
 
   const handleViewDetails = (vehicleId: string) => {
     setSelectedVehicleId(vehicleId)
@@ -51,12 +132,76 @@ export default function Home() {
     setSelectedVehicleId(null)
   }
 
+  // Show authentication pages
+  if (!isAuthenticated) {
+    if (authView === "login") {
+      return (
+        <LoginPage
+          onLoginSuccess={handleLoginSuccess}
+          onSwitchToRegister={() => setAuthView("register")}
+        />
+      )
+    }
+    if (authView === "register") {
+      return (
+        <RegistrationPage
+          onRegistrationSuccess={handleRegistrationSuccess}
+          onSwitchToLogin={() => setAuthView("login")}
+        />
+      )
+    }
+  }
+
+  // Show profile page
+  if (authView === "profile") {
+    // Fetch profile data if not already loaded
+    if (!profileData && isAuthenticated) {
+      fetch('http://localhost:8080/api/v1/users/me', {
+        method: 'GET',
+        credentials: 'include',
+      })
+        .then(res => res.json())
+        .then(data => {
+          setProfileData({
+            fullName: data.fullName,
+            email: data.email,
+            phoneNumber: data.contactNumber,
+            dateOfBirth: data.dateOfBirth,
+            profilePicture: data.profilePicture,
+          })
+        })
+        .catch(err => console.error('Failed to fetch profile:', err))
+    }
+
+    if (!profileData) {
+      return (
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+        </div>
+      )
+    }
+
+    return (
+      <UserProfilePage
+        onBack={() => {
+          setAuthView("app")
+          setProfileData(null)
+        }}
+        onDeleteSuccess={handleDeleteProfile}
+        initialData={profileData}
+      />
+    )
+  }
+
   return (
     <>
       <Navigation
         currentRole={currentRole}
         onRoleChange={setCurrentRole}
         onMessagesClick={() => setShowChatsList(true)}
+        onProfileClick={() => setShowProfileSidebar(true)}
+        userName={currentUser.name}
+        userImage={currentUser.image}
       />
 
       <main className="min-h-screen bg-background">
@@ -198,6 +343,22 @@ export default function Home() {
       )}
 
       <ChatbotFloatingIcon userId={currentUser.id} userRole={currentRole} userName={currentUser.name} />
+
+      {/* Profile Sidebar */}
+      {showProfileSidebar && (
+        <ProfileSidebar
+          userName={currentUser.name}
+          userEmail={currentUser.email}
+          userImage={currentUser.image}
+          onManageProfile={() => {
+            setAuthView("profile")
+            setShowProfileSidebar(false)
+            setProfileData(null)
+          }}
+          onLogout={handleLogout}
+          onClose={() => setShowProfileSidebar(false)}
+        />
+      )}
     </>
   )
 }

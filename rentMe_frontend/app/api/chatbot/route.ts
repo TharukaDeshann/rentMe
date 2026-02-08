@@ -1,8 +1,8 @@
-import { generateText, tool } from "ai"
-import { z } from "zod"
-import { dummyBookings, dummyVehicles } from "@/lib/dummy-data"
+import { generateText, tool } from "ai";
+import { z } from "zod";
+import { dummyBookings, dummyVehicles } from "@/lib/dummy-data";
 
-export const maxDuration = 30
+export const maxDuration = 30;
 
 const getUserBookings = tool({
   description: "Get all bookings for a specific user",
@@ -10,7 +10,7 @@ const getUserBookings = tool({
     userId: z.string(),
   }),
   execute: async ({ userId }) => {
-    const userBookings = dummyBookings.filter((b) => b.renter.id === userId)
+    const userBookings = dummyBookings.filter((b) => b.renter.id === userId);
     return userBookings.map((b) => ({
       id: b.id,
       vehicle: `${b.vehicle.year} ${b.vehicle.make} ${b.vehicle.model}`,
@@ -18,9 +18,9 @@ const getUserBookings = tool({
       returnDate: b.return_date,
       status: b.status,
       totalPrice: b.total_price,
-    }))
+    }));
   },
-})
+});
 
 const getVehicleDetails = tool({
   description: "Get details about a specific vehicle",
@@ -28,8 +28,8 @@ const getVehicleDetails = tool({
     vehicleId: z.string(),
   }),
   execute: async ({ vehicleId }) => {
-    const vehicle = dummyVehicles.find((v) => v.id === vehicleId)
-    if (!vehicle) return "Vehicle not found"
+    const vehicle = dummyVehicles.find((v) => v.id === vehicleId);
+    if (!vehicle) return "Vehicle not found";
     return {
       make: vehicle.make,
       model: vehicle.model,
@@ -39,9 +39,9 @@ const getVehicleDetails = tool({
       dailyPrice: vehicle.daily_price,
       availability: vehicle.availability,
       rating: vehicle.rating,
-    }
+    };
   },
-})
+});
 
 const getSystemFAQ = tool({
   description: "Get frequently asked questions about the rental system",
@@ -75,12 +75,12 @@ const getSystemFAQ = tool({
             "Prices are based on the daily rate multiplied by the number of rental days. No hidden fees - what you see is what you pay.",
         },
       ],
-    }
+    };
   },
-})
+});
 
 export async function POST(req: Request) {
-  const { message, userId, userRole, conversationHistory } = await req.json()
+  const { message, userId, userRole, conversationHistory } = await req.json();
 
   const systemPrompt = `You are a helpful RentMe vehicle rental assistant. You help users with:
 1. Information about their bookings and rental history
@@ -91,11 +91,14 @@ export async function POST(req: Request) {
 Current user: ${userId} (Role: ${userRole})
 Today's date: ${new Date().toISOString()}
 
-Be friendly, concise, and helpful. Use the available tools to provide accurate information.`
+Be friendly, concise, and helpful. Use the available tools to provide accurate information.`;
 
   const conversationContext = conversationHistory
-    .map((msg: any) => `${msg.role === "user" ? "User" : "Assistant"}: ${msg.content}`)
-    .join("\n")
+    .map(
+      (msg: any) =>
+        `${msg.role === "user" ? "User" : "Assistant"}: ${msg.content}`,
+    )
+    .join("\n");
 
   try {
     const { text } = await generateText({
@@ -108,14 +111,17 @@ Be friendly, concise, and helpful. Use the available tools to provide accurate i
       },
       prompt: `${conversationContext}\n\nUser: ${message}`,
       maxOutputTokens: 500,
-    })
+    });
 
-    return Response.json({ response: text })
+    return Response.json({ response: text });
   } catch (error) {
-    console.error("[v0] Chatbot error:", error)
+    console.error("[v0] Chatbot error:", error);
     return Response.json(
-      { response: "I encountered an error processing your request. Please try again." },
+      {
+        response:
+          "I encountered an error processing your request. Please try again.",
+      },
       { status: 500 },
-    )
+    );
   }
 }

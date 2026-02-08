@@ -120,8 +120,19 @@ export default function GoogleSignInButton() {
 
         console.log('Login successful! Redirecting to dashboard...');
 
-        // Redirect to dashboard
-        router.push('/dashboard');
+        // Redirect based on role
+        switch (data.role) {
+          case 'ADMIN':
+            router.push('/dashboard?view=admin-dashboard');
+            break;
+          case 'VEHICLE_OWNER':
+            router.push('/dashboard?view=owner-dashboard');
+            break;
+          case 'RENTER':
+          default:
+            router.push('/dashboard?view=renter-browse');
+            break;
+        }
       } else {
         const errorData = await res.text();
         console.error('Backend authentication failed:', errorData);

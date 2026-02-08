@@ -67,11 +67,12 @@ public class CookieUtils {
      * @return Cookie configured for user info storage
      */
     private static Cookie createUserInfoCookie(User user) {
-        // Create JSON string with user information
-        String userInfo = String.format("{\"userId\":%d,\"email\":\"%s\",\"role\":\"%s\"}",
+        // Create JSON string with user information including auth provider
+        String userInfo = String.format("{\"userId\":%d,\"email\":\"%s\",\"role\":\"%s\",\"authProvider\":\"%s\"}",
                 user.getUserId(),
                 user.getEmail(),
-                user.getRole().name());
+                user.getRole().name(),
+                user.getAuthProvider().name());
 
         // URL encode to avoid special character issues in cookies
         String encodedUserInfo = URLEncoder.encode(userInfo, StandardCharsets.UTF_8);

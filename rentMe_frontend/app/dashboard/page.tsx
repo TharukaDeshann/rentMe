@@ -9,6 +9,7 @@ export default function DashboardPage() {
     userId: string;
     email: string;
     role: string;
+    authProvider: string;
   } | null>(null);
 
   useEffect(() => {
@@ -33,12 +34,14 @@ export default function DashboardPage() {
         userId: userInfo.userId.toString(),
         email: userInfo.email,
         role: userInfo.role,
+        authProvider: userInfo.authProvider || 'LOCAL', // Default to LOCAL if not present
       });
 
       // Also store in localStorage for easy access
       localStorage.setItem('user_id', userInfo.userId.toString());
       localStorage.setItem('user_email', userInfo.email);
       localStorage.setItem('user_role', userInfo.role);
+      localStorage.setItem('user_auth_provider', userInfo.authProvider || 'LOCAL');
     } catch (error) {
       console.error('Failed to parse user info:', error);
       router.push('/login');
@@ -105,7 +108,7 @@ export default function DashboardPage() {
                 🎉 Welcome to rentMe Dashboard!
               </h2>
               <p className="text-gray-600 mb-4">
-                You have successfully logged in using OAuth2 Google authentication.
+                You have successfully logged in{user.authProvider === 'GOOGLE' ? ' using Google OAuth2 authentication' : ' with your email and password'}.
               </p>
               <div className="bg-green-50 border border-green-200 rounded-md p-4">
                 <div className="flex">
@@ -116,7 +119,7 @@ export default function DashboardPage() {
                   </div>
                   <div className="ml-3">
                     <p className="text-sm font-medium text-green-800">
-                      Authentication successful! Your OAuth2 implementation is working perfectly.
+                      Authentication successful! You're now logged in to your account.
                     </p>
                   </div>
                 </div>
@@ -148,8 +151,12 @@ export default function DashboardPage() {
                 <div>
                   <dt className="text-sm font-medium text-gray-500">Authentication Method</dt>
                   <dd className="mt-1 text-sm text-gray-900">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                      Google OAuth2
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      user.authProvider === 'GOOGLE' 
+                        ? 'bg-green-100 text-green-800' 
+                        : 'bg-purple-100 text-purple-800'
+                    }`}>
+                      {user.authProvider === 'GOOGLE' ? 'Google OAuth2' : 'Email & Password'}
                     </span>
                   </dd>
                 </div>
@@ -160,14 +167,14 @@ export default function DashboardPage() {
           {/* Testing Info Card */}
           <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-6">
             <h3 className="text-lg font-medium text-blue-900 mb-2">
-              ✅ OAuth2 Testing Complete
+              ✅ Authentication Complete
             </h3>
             <ul className="list-disc list-inside space-y-1 text-sm text-blue-800">
-              <li>Backend OAuth2 configuration working</li>
-              <li>Google authentication successful</li>
-              <li>User created/updated in database</li>
+              <li>Backend authentication configuration working</li>
+              <li>{user.authProvider === 'GOOGLE' ? 'Google OAuth2 login' : 'Local email/password login'} successful</li>
+              <li>User {user.authProvider === 'GOOGLE' ? 'created/updated' : 'registered/authenticated'} in database</li>
               <li>JWT token generated and stored</li>
-              <li>Frontend redirect handler working</li>
+              <li>Frontend authentication flow working</li>
               <li>Protected route access granted</li>
             </ul>
           </div>

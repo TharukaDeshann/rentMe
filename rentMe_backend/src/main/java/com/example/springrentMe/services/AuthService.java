@@ -183,7 +183,7 @@ public class AuthService {
                 user.setFullName(name);
                 user.setEmail(email);
                 user.setPassword(null); // No password for OAuth users
-                user.setContactNumber(""); // Can be updated later in profile
+                user.setContactNumber("0000000000"); // Placeholder - user can update later in profile
                 user.setRole(UserRole.RENTER); // Default role
                 user.setAuthProvider(AuthProvider.GOOGLE);
                 user.setOauthId(googleId);

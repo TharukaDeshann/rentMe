@@ -9,6 +9,7 @@ import com.example.springrentMe.repositories.UserRepository;
 import com.example.springrentMe.services.AuthService;
 import com.example.springrentMe.utils.CookieUtils;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -34,7 +35,7 @@ public class AuthController {
      * Sets JWT token in HTTP-only cookie for security
      */
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody RegisterRequest request, HttpServletResponse response) {
+    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request, HttpServletResponse response) {
         try {
             AuthResponse authResponse = authService.register(request);
 
@@ -65,7 +66,7 @@ public class AuthController {
      * Sets JWT token in HTTP-only cookie for security
      */
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest request, HttpServletResponse response) {
+    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request, HttpServletResponse response) {
         try {
             AuthResponse authResponse = authService.login(request);
 
