@@ -136,11 +136,6 @@ export function LoginPage({ onLoginSuccess, onSwitchToRegister }: LoginPageProps
             </p>
           </CardContent>
         </Card>
-
-        {/* Demo Note */}
-        <p className="mt-6 text-center text-xs text-muted-foreground">
-          Demo credentials: Use any email and password (min 6 chars)
-        </p>
       </div>
     </div>
   )

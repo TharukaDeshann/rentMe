@@ -157,14 +157,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const redirectBasedOnRole = (role: UserRole) => {
     switch (role) {
       case UserRole.ADMIN:
-        router.push('/dashboard?view=admin-dashboard');
+        router.push('/admin');
         break;
       case UserRole.VEHICLE_OWNER:
-        router.push('/dashboard?view=owner-dashboard');
+        router.push('/owner');
         break;
       case UserRole.RENTER:
       default:
-        router.push('/dashboard?view=renter-browse');
+        router.push('/renter');
         break;
     }
   };

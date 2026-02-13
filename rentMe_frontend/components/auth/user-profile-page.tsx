@@ -27,6 +27,8 @@ import {
   ArrowLeft,
 } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useUserProfile } from "@/contexts"
+import { userService } from "@/services"
 
 interface UserProfilePageProps {
   onBack: () => void
@@ -41,6 +43,7 @@ interface UserProfilePageProps {
 }
 
 export function UserProfilePage({ onBack, onDeleteSuccess, initialData }: UserProfilePageProps) {
+  const { updateProfile } = useUserProfile()
   const [isEditing, setIsEditing] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -81,29 +84,26 @@ export function UserProfilePage({ onBack, onDeleteSuccess, initialData }: UserPr
     
     try {
       const userId = localStorage.getItem('user_id')
-      const response = await fetch(`http://localhost:8080/api/v1/users/${userId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          fullName: editData.fullName,
-          email: editData.email,
-          contactNumber: editData.phoneNumber,
-          dateOfBirth: editData.dateOfBirth || null,
-        }),
+      if (!userId) {
+        throw new Error('User not authenticated')
+      }
+
+      // Use userService instead of direct fetch
+      const updatedUser = await userService.updateUser(parseInt(userId), {
+        fullName: editData.fullName,
+        email: editData.email,
+        contactNumber: editData.phoneNumber,
+        dateOfBirth: editData.dateOfBirth || undefined,
       })
 
-      if (response.ok) {
-        setFormData(editData)
-        setIsEditing(false)
-      } else {
-        const errorData = await response.text()
-        setError(errorData || 'Failed to update profile')
-      }
-    } catch (err) {
-      setError('An error occurred while saving changes')
+      // Update local form data
+      setFormData(editData)
+      setIsEditing(false)
+
+      // Update the global user profile context for real-time updates
+      updateProfile(updatedUser)
+    } catch (err: any) {
+      setError(err.message || 'An error occurred while saving changes')
     } finally {
       setIsSaving(false)
     }
@@ -115,20 +115,17 @@ export function UserProfilePage({ onBack, onDeleteSuccess, initialData }: UserPr
     
     try {
       const userId = localStorage.getItem('user_id')
-      const response = await fetch(`http://localhost:8080/api/v1/users/${userId}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      })
-
-      if (response.ok) {
-        setShowDeleteDialog(false)
-        onDeleteSuccess()
-      } else {
-        const errorData = await response.text()
-        setError(errorData || 'Failed to delete profile')
+      if (!userId) {
+        throw new Error('User not authenticated')
       }
-    } catch (err) {
-      setError('An error occurred while deleting profile')
+
+      // Use userService instead of direct fetch
+      await userService.deleteUser(parseInt(userId))
+
+      setShowDeleteDialog(false)
+      onDeleteSuccess()
+    } catch (err: any) {
+      setError(err.message || 'An error occurred while deleting profile')
     } finally {
       setIsSaving(false)
     }

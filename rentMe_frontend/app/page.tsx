@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Navigation } from "@/components/navigation"
+import { AppLayout } from "@/components/templates/layout/app-layout"
 import { BrowseVehicles } from "@/components/renter/browse-vehicles"
 import { VehicleDetailPage } from "@/components/renter/vehicle-detail-page"
 import { MyBookings } from "@/components/renter/my-bookings"
@@ -194,16 +194,15 @@ export default function Home() {
   }
 
   return (
-    <>
-      <Navigation
-        currentRole={currentRole}
-        onRoleChange={setCurrentRole}
-        onMessagesClick={() => setShowChatsList(true)}
-        onProfileClick={() => setShowProfileSidebar(true)}
-        userName={currentUser.name}
-        userImage={currentUser.image}
-      />
-
+      <AppLayout
+      currentRole={currentRole}
+      userName={currentUser.name}
+      userEmail={currentUser.email}
+      userImage={currentUser.image}
+      userId={currentUser.id}
+      onMessagesClick={() => setShowChatsList(true)}
+      onProfileClick={() => setShowProfileSidebar(true)}
+    >
       <main className="min-h-screen bg-background">
         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
           {/* Renter View */}
@@ -341,9 +340,7 @@ export default function Home() {
           onClose={() => setShowChatsList(false)}
         />
       )}
-
-      <ChatbotFloatingIcon userId={currentUser.id} userRole={currentRole} userName={currentUser.name} />
-
+      
       {/* Profile Sidebar */}
       {showProfileSidebar && (
         <ProfileSidebar
@@ -359,6 +356,6 @@ export default function Home() {
           onClose={() => setShowProfileSidebar(false)}
         />
       )}
-    </>
+    </AppLayout>
   )
 }

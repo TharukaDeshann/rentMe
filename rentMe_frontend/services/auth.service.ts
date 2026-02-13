@@ -95,8 +95,8 @@ export const googleLogin = async (
  */
 export const logout = async (): Promise<void> => {
   try {
-    // Call backend logout endpoint if you have one
-    // await apiClient.post('/auth/logout');
+    // Call backend logout endpoint to clear HTTP-only cookies
+    await apiClient.post("/auth/logout");
 
     // Clear localStorage
     if (typeof window !== "undefined") {

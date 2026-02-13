@@ -22,6 +22,7 @@ export interface User {
   role: UserRole;
   authProvider: AuthProvider;
   dateOfBirth?: string;
+  profilePicture?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -32,6 +33,7 @@ export interface UserProfile extends User {
 
 export interface UpdateUserRequest {
   fullName?: string;
+  email?: string;
   contactNumber?: string;
   dateOfBirth?: string;
 }
