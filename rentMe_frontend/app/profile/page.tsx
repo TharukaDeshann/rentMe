@@ -55,7 +55,7 @@ export default function ProfilePage() {
   }, [router]);
 
   const handleBack = () => {
-    router.push('/dashboard');
+    router.back();
   };
 
   const handleDeleteSuccess = () => {

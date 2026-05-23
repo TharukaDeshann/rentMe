@@ -3,6 +3,7 @@
 import React from "react"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -31,7 +32,7 @@ import { useUserProfile } from "@/contexts"
 import { userService } from "@/services"
 
 interface UserProfilePageProps {
-  onBack: () => void
+  onBack?: () => void
   onDeleteSuccess: () => void
   initialData?: {
     fullName: string
@@ -43,12 +44,22 @@ interface UserProfilePageProps {
 }
 
 export function UserProfilePage({ onBack, onDeleteSuccess, initialData }: UserProfilePageProps) {
+  const router = useRouter()
   const { updateProfile } = useUserProfile()
   const [isEditing, setIsEditing] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [profileImage, setProfileImage] = useState(initialData?.profilePicture || "/woman-profile.png")
   const [error, setError] = useState("")
+
+  // Default back handler uses browser history if no custom onBack provided
+  const handleBackClick = () => {
+    if (onBack) {
+      onBack()
+    } else {
+      router.back()
+    }
+  }
   
   const [formData, setFormData] = useState({
     fullName: initialData?.fullName || "",
@@ -146,7 +157,7 @@ export function UserProfilePage({ onBack, onDeleteSuccess, initialData }: UserPr
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={onBack}
+                onClick={handleBackClick}
                 className="text-muted-foreground hover:text-foreground"
               >
                 <ArrowLeft className="h-5 w-5" />

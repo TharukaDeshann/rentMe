@@ -38,7 +38,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`font-sans antialiased`}>
+      <body className={`font-sans antialiased bg-background text-foreground`}>
         <AuthProvider>
           <UserProfileProvider>
             {children}
