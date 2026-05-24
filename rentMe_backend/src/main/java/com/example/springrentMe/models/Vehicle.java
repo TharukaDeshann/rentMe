@@ -38,7 +38,7 @@ public class Vehicle {
     @Column(nullable = false, length = 100)
     private String model; // e.g., Camry, Civic
 
-    @NotBlank(message = "Vehicle type is required")
+    @NotNull(message = "Vehicle type is required")
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private VehicleType type; // SEDAN, SUV, TRUCK, VAN, etc.
@@ -62,7 +62,8 @@ public class Vehicle {
     @Column(name = "pictures", columnDefinition = "TEXT")
     private String pictures;
 
-    // Legal documents - stored as JSON string of URLs {"registration": "...", "insurance": "..."}
+    // Legal documents - stored as JSON string of URLs {"registration": "...",
+    // "insurance": "..."}
     @Column(name = "legal_documents", columnDefinition = "TEXT")
     private String legalDocuments;
 

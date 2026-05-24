@@ -48,12 +48,12 @@ public class BookingService {
      * Renter submits a booking request for a vehicle.
      *
      * Validations:
-     *  1. Renter profile must exist for the authenticated user.
-     *  2. Vehicle must exist.
-     *  3. Vehicle must belong to an APPROVED owner.
-     *  4. Vehicle must be listed and available (isAvailable = true).
-     *  5. Dates must be valid (end after start).
-     *  6. No overlapping active bookings for the same vehicle.
+     * 1. Renter profile must exist for the authenticated user.
+     * 2. Vehicle must exist.
+     * 3. Vehicle must belong to an APPROVED owner.
+     * 4. Vehicle must be listed and available (isAvailable = true).
+     * 5. Dates must be valid (end after start).
+     * 6. No overlapping active bookings for the same vehicle.
      */
     @Transactional
     public BookingResponseDTO createBooking(BookingRequestDTO request) {
@@ -99,11 +99,11 @@ public class BookingService {
         if (hasOverlap) {
             throw new RuntimeException(
                     "The selected dates overlap with an existing booking for this vehicle. " +
-                    "Please choose different dates.");
+                            "Please choose different dates.");
         }
 
         // 9. Calculate total amount
-        long numberOfDays = ChronoUnit.DAYS.between(request.getStartDate(), request.getEndDate());
+        long numberOfDays = ChronoUnit.DAYS.between(request.getStartDate(), request.getEndDate()) + 1;
         if (numberOfDays < 1) {
             throw new RuntimeException("Booking must be at least 1 day.");
         }
@@ -164,7 +164,7 @@ public class BookingService {
             }
             default -> throw new RuntimeException(
                     "Cannot update booking in status: " + booking.getStatus() +
-                    ". Only PENDING bookings can be actioned by the owner.");
+                            ". Only PENDING bookings can be actioned by the owner.");
         }
 
         Booking saved = bookingRepository.save(booking);
@@ -173,7 +173,8 @@ public class BookingService {
 
     /**
      * Renter cancels their OWN PENDING booking.
-     * A renter can only cancel while the booking is still PENDING (before owner approves).
+     * A renter can only cancel while the booking is still PENDING (before owner
+     * approves).
      */
     @Transactional
     public BookingResponseDTO renterCancelBooking(Long bookingId, BookingStatusUpdateDTO request) {
@@ -189,7 +190,7 @@ public class BookingService {
         if (booking.getStatus() != BookingStatus.PENDING) {
             throw new RuntimeException(
                     "You can only cancel a booking while it is PENDING. " +
-                    "Current status: " + booking.getStatus());
+                            "Current status: " + booking.getStatus());
         }
 
         booking.setStatus(BookingStatus.CANCELLED);
@@ -223,7 +224,8 @@ public class BookingService {
 
     /**
      * Runs every day at midnight.
-     * Transitions ONGOING → COMPLETED when end_date passes, then restores vehicle availability.
+     * Transitions ONGOING → COMPLETED when end_date passes, then restores vehicle
+     * availability.
      */
     @Scheduled(cron = "0 1 0 * * *") // every day at 00:01 (slightly after above)
     @Transactional
@@ -269,7 +271,8 @@ public class BookingService {
     }
 
     /**
-     * Get all PENDING booking requests for the authenticated owner (decision queue).
+     * Get all PENDING booking requests for the authenticated owner (decision
+     * queue).
      */
     @Transactional(readOnly = true)
     public List<BookingResponseDTO> getPendingRequestsForOwner() {
@@ -311,8 +314,8 @@ public class BookingService {
         if (startDate == null || endDate == null) {
             throw new RuntimeException("Start date and end date are required.");
         }
-        if (!endDate.isAfter(startDate)) {
-            throw new RuntimeException("End date must be after start date.");
+        if (endDate.isBefore(startDate)) {
+            throw new RuntimeException("End date must be on or after start date.");
         }
     }
 
@@ -349,7 +352,7 @@ public class BookingService {
     private void ensureCurrentUserCanViewBooking(Booking booking) {
         Long userId = getCurrentUserId();
         Long renterUserId = booking.getRenter().getUser().getUserId();
-        Long ownerUserId  = booking.getVehicle().getVehicleOwner().getUser().getUserId();
+        Long ownerUserId = booking.getVehicle().getVehicleOwner().getUser().getUserId();
 
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         boolean isAdmin = auth.getAuthorities().stream()
@@ -377,7 +380,7 @@ public class BookingService {
         dto.setUpdatedAt(booking.getUpdatedAt());
 
         // Number of days
-        long days = ChronoUnit.DAYS.between(booking.getStartDate(), booking.getEndDate());
+        long days = ChronoUnit.DAYS.between(booking.getStartDate(), booking.getEndDate()) + 1;
         dto.setNumberOfDays(days);
 
         // Vehicle details
