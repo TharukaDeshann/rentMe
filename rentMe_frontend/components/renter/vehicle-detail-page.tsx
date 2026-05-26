@@ -1,22 +1,97 @@
-"use client"
+"use client";
 
-import { ArrowLeft, Star, Users, Shield, MessageSquare, Calendar, MapPin } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { dummyVehicles } from "@/lib/dummy-data"
+import { useState, useEffect } from "react";
+import {
+  ArrowLeft,
+  Users,
+  Shield,
+  MessageSquare,
+  Calendar,
+  MapPin,
+  Loader2,
+  AlertCircle,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Skeleton } from "@/components/ui/skeleton";
+import { getVehicleById } from "@/services/booking.service";
+import { Vehicle } from "@/types/booking";
 
 interface VehicleDetailPageProps {
-  vehicleId: string
-  onBack: () => void
-  onBooking: () => void
-  onChat: () => void
+  vehicleId: number;
+  onBack: () => void;
+  onBooking: (vehicle: Vehicle) => void;
+  onChat: () => void;
 }
 
-export function VehicleDetailPage({ vehicleId, onBack, onBooking, onChat }: VehicleDetailPageProps) {
-  const vehicle = dummyVehicles.find((v) => v.id === vehicleId)
+export function VehicleDetailPage({
+  vehicleId,
+  onBack,
+  onBooking,
+  onChat,
+}: VehicleDetailPageProps) {
+  const [vehicle, setVehicle] = useState<Vehicle | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  if (!vehicle) return null
+  useEffect(() => {
+    const fetch = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await getVehicleById(vehicleId);
+        setVehicle(data);
+      } catch (err: any) {
+        setError(err.message || "Failed to load vehicle details.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetch();
+  }, [vehicleId]);
+
+  const firstPicture = (pictures?: string) => {
+    if (!pictures) return "/placeholder.jpg";
+    return pictures.split(",")[0].trim();
+  };
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-8 w-32" />
+        <Skeleton className="h-10 w-64" />
+        <div className="grid gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2 space-y-6">
+            <Skeleton className="h-96 w-full rounded-lg" />
+            <Skeleton className="h-48 w-full" />
+          </div>
+          <div className="space-y-6">
+            <Skeleton className="h-64 w-full" />
+            <Skeleton className="h-48 w-full" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !vehicle) {
+    return (
+      <div className="space-y-4">
+        <Button variant="ghost" onClick={onBack} className="gap-2">
+          <ArrowLeft className="h-4 w-4" />
+          Back to Browse
+        </Button>
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            {error || "Vehicle not found."}
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -35,32 +110,45 @@ export function VehicleDetailPage({ vehicleId, onBack, onBooking, onChat }: Vehi
           <div className="mt-2 flex items-center gap-4 text-sm text-muted-foreground">
             <div className="flex items-center gap-1">
               <MapPin className="h-4 w-4" />
-              {vehicle.location.name}
+              {vehicle.pickupLocation}
             </div>
-            <div className="flex items-center gap-1">
-              <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-              {vehicle.rating} Rating
-            </div>
+            {!vehicle.isAvailable && (
+              <Badge variant="destructive">Currently Unavailable</Badge>
+            )}
           </div>
         </div>
-        <Badge className="text-lg px-4 py-2">{vehicle.type}</Badge>
+        <Badge className="text-base px-4 py-2">{vehicle.type}</Badge>
       </div>
 
       {/* Main Content Grid */}
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* Left Column - Images and Details */}
+        {/* Left Column */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Large Image */}
+          {/* Image */}
           <div className="relative h-96 w-full overflow-hidden rounded-lg bg-muted">
             <img
-              src={vehicle.image_url || "/placeholder.svg"}
+              src={firstPicture(vehicle.pictures)}
               alt={`${vehicle.make} ${vehicle.model}`}
-              onError={(e) => (e.currentTarget.src = "/fallback.jpg")}
+              onError={(e) => (e.currentTarget.src = "/placeholder.jpg")}
               className="h-full w-full object-cover"
             />
           </div>
 
-          {/* Vehicle Specifications */}
+          {/* Description */}
+          {vehicle.description && (
+            <Card>
+              <CardHeader>
+                <CardTitle>About this vehicle</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground leading-relaxed">
+                  {vehicle.description}
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Specifications */}
           <Card>
             <CardHeader>
               <CardTitle>Vehicle Specifications</CardTitle>
@@ -76,105 +164,68 @@ export function VehicleDetailPage({ vehicleId, onBack, onBooking, onChat }: Vehi
                   <p className="font-semibold">{vehicle.model}</p>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">Year</p>
-                  <p className="font-semibold">{vehicle.year}</p>
-                </div>
-                <div className="space-y-1">
                   <p className="text-sm text-muted-foreground">Type</p>
                   <p className="font-semibold">{vehicle.type}</p>
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm text-muted-foreground">Capacity</p>
-                  <p className="font-semibold flex items-center gap-2">
+                  <p className="font-semibold flex items-center gap-1">
                     <Users className="h-4 w-4" />
                     {vehicle.capacity} Seats
                   </p>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">License Plate</p>
-                  <p className="font-semibold">{vehicle.license_plate}</p>
+                  <p className="text-sm text-muted-foreground">Daily Price</p>
+                  <p className="font-semibold">${vehicle.dailyPrice}/day</p>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Ratings Section */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Vehicle Ratings</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2">
-                    <Star className="h-8 w-8 fill-yellow-400 text-yellow-400" />
-                    <span className="text-3xl font-bold">{vehicle.rating}</span>
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    <p>Based on 24 reviews</p>
-                    <p>Excellent condition</p>
-                  </div>
-                </div>
-
-                {/* Rating Breakdown */}
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm w-20">Cleanliness</span>
-                    <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
-                      <div className="h-full bg-secondary" style={{ width: "95%" }} />
-                    </div>
-                    <span className="text-sm font-medium">4.9</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm w-20">Comfort</span>
-                    <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
-                      <div className="h-full bg-secondary" style={{ width: "90%" }} />
-                    </div>
-                    <span className="text-sm font-medium">4.7</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm w-20">Performance</span>
-                    <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
-                      <div className="h-full bg-secondary" style={{ width: "88%" }} />
-                    </div>
-                    <span className="text-sm font-medium">4.6</span>
-                  </div>
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">Availability</p>
+                  <Badge
+                    className={
+                      vehicle.isAvailable
+                        ? "bg-green-500/10 text-green-600 border-green-500/20"
+                        : "bg-destructive/10 text-destructive border-destructive/20"
+                    }
+                  >
+                    {vehicle.isAvailable ? "Available" : "Not Available"}
+                  </Badge>
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Right Column - Pricing and Owner Info */}
+        {/* Right Column */}
         <div className="space-y-6">
-          {/* Pricing Card */}
+          {/* Pricing & Booking Card */}
           <Card className="sticky top-4">
             <CardContent className="pt-6">
               <div className="space-y-4">
                 <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-bold">${vehicle.daily_price}</span>
+                  <span className="text-3xl font-bold">
+                    ${vehicle.dailyPrice}
+                  </span>
                   <span className="text-muted-foreground">/ day</span>
                 </div>
 
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">3 days rental</span>
-                    <span className="font-medium">${(vehicle.daily_price * 3).toFixed(2)}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Service fee</span>
-                    <span className="font-medium">$15.00</span>
-                  </div>
-                  <div className="border-t border-border pt-2 flex items-center justify-between font-semibold">
-                    <span>Total</span>
-                    <span>${(vehicle.daily_price * 3 + 15).toFixed(2)}</span>
-                  </div>
-                </div>
+                {vehicle.isAvailable ? (
+                  <Button
+                    size="lg"
+                    className="w-full gap-2"
+                    onClick={() => onBooking(vehicle)}
+                  >
+                    <Calendar className="h-4 w-4" />
+                    Request Booking
+                  </Button>
+                ) : (
+                  <Button size="lg" className="w-full" disabled>
+                    Not Available
+                  </Button>
+                )}
 
-                <Button size="lg" className="w-full gap-2" onClick={onBooking}>
-                  <Calendar className="h-4 w-4" />
-                  Request Booking
-                </Button>
+                <p className="text-xs text-muted-foreground text-center">
+                  Total is calculated once you choose dates
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -186,51 +237,48 @@ export function VehicleDetailPage({ vehicleId, onBack, onBooking, onChat }: Vehi
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center gap-3">
-                <img
-                  src={vehicle.owner.profile_picture || "/placeholder.svg"}
-                  alt={vehicle.owner.full_name}
-                  onError={(e) => (e.currentTarget.src = "/fallback.jpg")}
-                  className="h-12 w-12 rounded-full object-cover"
-                />
+                <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold">
+                  {vehicle.ownerName.charAt(0)}
+                </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <h3 className="font-semibold">{vehicle.owner.full_name}</h3>
-                    {vehicle.owner.isVerified && (
-                      <Badge className="gap-1 bg-secondary text-secondary-foreground">
-                        <Shield className="h-3 w-3" />
-                        Verified
-                      </Badge>
-                    )}
+                    <h3 className="font-semibold">{vehicle.ownerName}</h3>
+                    <Badge className="gap-1 bg-secondary text-secondary-foreground text-xs">
+                      <Shield className="h-3 w-3" />
+                      Verified
+                    </Badge>
                   </div>
-                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                    <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                    <span>{vehicle.owner.rating} Rating</span>
-                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {vehicle.ownerEmail}
+                  </p>
                 </div>
               </div>
 
-              <Button variant="outline" className="w-full gap-2 bg-transparent" onClick={onChat}>
+              <Button
+                variant="outline"
+                className="w-full gap-2 bg-transparent"
+                onClick={onChat}
+              >
                 <MessageSquare className="h-4 w-4" />
                 Chat with Owner
               </Button>
             </CardContent>
           </Card>
 
-          {/* Location Card */}
+          {/* Location */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Pickup Location</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                <div className="flex items-start gap-2">
-                  <MapPin className="h-5 w-5 text-primary mt-0.5" />
-                  <div>
-                    <p className="font-medium">{vehicle.location.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {vehicle.location.latitude.toFixed(4)}, {vehicle.location.longitude.toFixed(4)}
-                    </p>
-                  </div>
+              <div className="flex items-start gap-2">
+                <MapPin className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                <div>
+                  <p className="font-medium">{vehicle.pickupLocation}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {vehicle.latitude.toFixed(4)},{" "}
+                    {vehicle.longitude.toFixed(4)}
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -238,5 +286,5 @@ export function VehicleDetailPage({ vehicleId, onBack, onBooking, onChat }: Vehi
         </div>
       </div>
     </div>
-  )
+  );
 }

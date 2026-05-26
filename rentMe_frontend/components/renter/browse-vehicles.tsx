@@ -1,32 +1,75 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Search, MapPin, Users, DollarSign, Star, Calendar, MapPinIcon } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { dummyVehicles } from "@/lib/dummy-data"
+import { useState, useEffect, useCallback } from "react";
+import {
+  Search,
+  MapPin,
+  Users,
+  DollarSign,
+  Star,
+  Calendar,
+  MapPinIcon,
+  Loader2,
+  AlertCircle,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { getAvailableVehicles } from "@/services/booking.service";
+import { Vehicle, VehicleType } from "@/types/booking";
 
 interface BrowseVehiclesProps {
-  onViewDetails: (vehicleId: string) => void
+  onViewDetails: (vehicleId: number) => void;
 }
 
+const VEHICLE_TYPES: VehicleType[] = ["SEDAN", "SUV", "TRUCK", "VAN"];
+
 export function BrowseVehicles({ onViewDetails }: BrowseVehiclesProps) {
-  const [searchLocation, setSearchLocation] = useState("")
-  const [selectedType, setSelectedType] = useState<string>("")
-  const [priceRange, setPriceRange] = useState(100)
-  const [view, setView] = useState<"list" | "map">("list")
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const filteredVehicles = dummyVehicles.filter((vehicle) => {
-    const matchesLocation =
-      !searchLocation || vehicle.location.name.toLowerCase().includes(searchLocation.toLowerCase())
-    const matchesType = !selectedType || vehicle.type === selectedType
-    const matchesPrice = vehicle.daily_price <= priceRange
-    return matchesLocation && matchesType && matchesPrice
-  })
+  // Filter state
+  const [searchLocation, setSearchLocation] = useState("");
+  const [selectedType, setSelectedType] = useState<VehicleType | "">("");
+  const [priceRange, setPriceRange] = useState(200);
+  const [view, setView] = useState<"list" | "map">("list");
 
-  const vehicleTypes = ["Sedan", "SUV", "Truck", "Van"]
+  const fetchVehicles = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await getAvailableVehicles(
+        selectedType || undefined,
+        priceRange < 200 ? priceRange : undefined
+      );
+      setVehicles(data);
+    } catch (err: any) {
+      setError(err.message || "Failed to load vehicles. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedType, priceRange]);
+
+  useEffect(() => {
+    fetchVehicles();
+  }, [fetchVehicles]);
+
+  // Client-side location filter (API doesn't support text search yet)
+  const filteredVehicles = vehicles.filter((v) => {
+    if (!searchLocation) return true;
+    return v.pickupLocation
+      .toLowerCase()
+      .includes(searchLocation.toLowerCase());
+  });
+
+  const firstPicture = (pictures?: string) => {
+    if (!pictures) return "/placeholder.jpg";
+    // pictures can be a single URL or comma-separated list
+    return pictures.split(",")[0].trim();
+  };
 
   return (
     <div className="space-y-6">
@@ -43,41 +86,44 @@ export function BrowseVehicles({ onViewDetails }: BrowseVehiclesProps) {
                 className="pl-10"
               />
             </div>
-            <div className="relative">
-              <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input type="date" className="pl-10" />
-            </div>
-            <div className="relative">
-              <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input type="date" className="pl-10" />
-            </div>
-            <Button className="w-full gap-2">
+            <div className="relative md:col-span-2" />
+            <Button className="w-full gap-2" onClick={fetchVehicles}>
               <Search className="h-4 w-4" />
-              Search
+              Refresh
             </Button>
           </div>
         </CardContent>
       </Card>
 
       {/* Filter & View Toggle */}
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex gap-2">
-          {vehicleTypes.map((type) => (
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div className="flex gap-2 flex-wrap">
+          {VEHICLE_TYPES.map((type) => (
             <Button
               key={type}
               variant={selectedType === type ? "default" : "outline"}
               size="sm"
-              onClick={() => setSelectedType(selectedType === type ? "" : type)}
+              onClick={() =>
+                setSelectedType(selectedType === type ? "" : type)
+              }
             >
-              {type}
+              {type.charAt(0) + type.slice(1).toLowerCase()}
             </Button>
           ))}
         </div>
         <div className="flex gap-2">
-          <Button variant={view === "list" ? "default" : "outline"} size="sm" onClick={() => setView("list")}>
+          <Button
+            variant={view === "list" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setView("list")}
+          >
             List
           </Button>
-          <Button variant={view === "map" ? "default" : "outline"} size="sm" onClick={() => setView("map")}>
+          <Button
+            variant={view === "map" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setView("map")}
+          >
             Map
           </Button>
         </div>
@@ -89,12 +135,15 @@ export function BrowseVehicles({ onViewDetails }: BrowseVehiclesProps) {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <label className="text-sm font-medium">Daily Price Range</label>
-              <span className="text-sm font-semibold text-primary">${priceRange}</span>
+              <span className="text-sm font-semibold text-primary">
+                {priceRange >= 200 ? "Any" : `$${priceRange}`}
+              </span>
             </div>
             <input
               type="range"
               min="0"
               max="200"
+              step="5"
               value={priceRange}
               onChange={(e) => setPriceRange(Number(e.target.value))}
               className="w-full"
@@ -103,23 +152,51 @@ export function BrowseVehicles({ onViewDetails }: BrowseVehiclesProps) {
         </CardContent>
       </Card>
 
+      {/* Error State */}
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {/* Loading State */}
+      {loading && (
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <span className="ml-2 text-muted-foreground">
+            Loading vehicles...
+          </span>
+        </div>
+      )}
+
       {/* List View */}
-      {view === "list" && (
+      {!loading && view === "list" && (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredVehicles.length > 0 ? (
             filteredVehicles.map((vehicle) => (
-              <Card key={vehicle.id} className="overflow-hidden transition-all hover:shadow-lg">
+              <Card
+                key={vehicle.vehicleId}
+                className="overflow-hidden transition-all hover:shadow-lg"
+              >
                 {/* Vehicle Image */}
                 <div className="relative h-48 w-full overflow-hidden bg-muted">
                   <img
-                    src={vehicle.image_url}
+                    src={firstPicture(vehicle.pictures)}
                     alt={`${vehicle.make} ${vehicle.model}`}
-                    onError={(e) => (e.currentTarget.src = "/fallback.jpg")}
+                    onError={(e) =>
+                      (e.currentTarget.src = "/placeholder.jpg")
+                    }
                     className="h-full w-full object-cover transition-transform hover:scale-105"
                   />
                   <Badge className="absolute right-2 top-2 bg-secondary text-secondary-foreground">
                     {vehicle.type}
                   </Badge>
+                  {!vehicle.isAvailable && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+                      <Badge variant="destructive">Not Available</Badge>
+                    </div>
+                  )}
                 </div>
 
                 <CardContent className="space-y-3 pt-4">
@@ -128,7 +205,10 @@ export function BrowseVehicles({ onViewDetails }: BrowseVehiclesProps) {
                     <h3 className="font-semibold text-foreground">
                       {vehicle.make} {vehicle.model}
                     </h3>
-                    <p className="text-xs text-muted-foreground">{vehicle.year}</p>
+                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                      <MapPin className="h-3 w-3" />
+                      {vehicle.pickupLocation}
+                    </p>
                   </div>
 
                   {/* Info Row */}
@@ -139,20 +219,25 @@ export function BrowseVehicles({ onViewDetails }: BrowseVehiclesProps) {
                     </div>
                     <div className="flex items-center gap-1">
                       <DollarSign className="h-4 w-4" />
-                      <span>${vehicle.daily_price} / day</span>
+                      <span>${vehicle.dailyPrice} / day</span>
                     </div>
                   </div>
 
                   {/* Owner Info */}
                   <div className="flex items-center justify-between border-t border-border pt-3">
                     <div className="text-sm">
-                      <p className="font-medium text-foreground">{vehicle.owner.full_name}</p>
-                      <div className="flex items-center gap-1">
-                        <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                        <span className="text-xs text-muted-foreground">{vehicle.owner.rating}</span>
-                      </div>
+                      <p className="font-medium text-foreground">
+                        {vehicle.ownerName}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Verified Owner
+                      </p>
                     </div>
-                    <Button size="sm" onClick={() => onViewDetails(vehicle.id)} className="gap-1">
+                    <Button
+                      size="sm"
+                      onClick={() => onViewDetails(vehicle.vehicleId)}
+                      disabled={!vehicle.isAvailable}
+                    >
                       View Details
                     </Button>
                   </div>
@@ -161,14 +246,16 @@ export function BrowseVehicles({ onViewDetails }: BrowseVehiclesProps) {
             ))
           ) : (
             <div className="col-span-full py-12 text-center">
-              <p className="text-muted-foreground">No vehicles found matching your criteria.</p>
+              <p className="text-muted-foreground">
+                No vehicles found matching your criteria.
+              </p>
             </div>
           )}
         </div>
       )}
 
       {/* Map View */}
-      {view === "map" && (
+      {!loading && view === "map" && (
         <Card className="border-0 shadow-sm">
           <CardContent className="pt-6">
             <div className="relative h-96 w-full rounded-lg bg-gradient-to-br from-primary/10 to-secondary/10">
@@ -178,14 +265,19 @@ export function BrowseVehicles({ onViewDetails }: BrowseVehiclesProps) {
                   <p className="text-sm text-muted-foreground">
                     {filteredVehicles.length} vehicles available in the area
                   </p>
-                  <div className="grid auto-cols-max gap-2">
+                  <div className="flex flex-col gap-2">
                     {filteredVehicles.slice(0, 3).map((vehicle) => (
-                      <div
-                        key={vehicle.id}
-                        className="rounded-lg border border-border bg-card p-2 text-xs text-foreground"
+                      <button
+                        key={vehicle.vehicleId}
+                        onClick={() => onViewDetails(vehicle.vehicleId)}
+                        className="rounded-lg border border-border bg-card p-2 text-xs text-foreground hover:bg-muted text-left"
                       >
-                        {vehicle.make} {vehicle.model} • ${vehicle.daily_price}/day
-                      </div>
+                        {vehicle.make} {vehicle.model} • $
+                        {vehicle.dailyPrice}/day •{" "}
+                        <span className="text-muted-foreground">
+                          {vehicle.pickupLocation}
+                        </span>
+                      </button>
                     ))}
                   </div>
                 </div>
@@ -195,5 +287,5 @@ export function BrowseVehicles({ onViewDetails }: BrowseVehiclesProps) {
         </Card>
       )}
     </div>
-  )
+  );
 }

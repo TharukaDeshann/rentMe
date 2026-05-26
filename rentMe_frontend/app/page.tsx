@@ -316,6 +316,9 @@ export default function Home() {
           onClose={() => {
             setShowBookingForm(false)
           }}
+          onSuccess={() => {
+            setShowBookingForm(false)
+          }}
         />
       )}
 
