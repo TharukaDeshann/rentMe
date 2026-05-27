@@ -1,8 +1,10 @@
 package com.example.springrentMe.security.oauth2;
 
 import com.example.springrentMe.models.AuthProvider;
+import com.example.springrentMe.models.Renter;
 import com.example.springrentMe.models.User;
 import com.example.springrentMe.models.UserRole;
+import com.example.springrentMe.repositories.RenterRepository;
 import com.example.springrentMe.repositories.UserRepository;
 import com.example.springrentMe.security.UserDetailsImpl;
 import org.springframework.security.authentication.InternalAuthenticationServiceException;
@@ -11,6 +13,7 @@ import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.util.Optional;
@@ -23,14 +26,17 @@ import java.util.Optional;
 @Service
 public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
-    
     private final UserRepository userRepository;
 
-    public CustomOAuth2UserService(UserRepository userRepository) {
+    private final RenterRepository renterRepository;
+
+    public CustomOAuth2UserService(UserRepository userRepository, RenterRepository renterRepository) {
         this.userRepository = userRepository;
+        this.renterRepository = renterRepository;
     }
 
     @Override
+    @Transactional
     public OAuth2User loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException {
         // Get OAuth2 user info from provider (Google)
         OAuth2User oAuth2User = super.loadUser(userRequest);
@@ -44,6 +50,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         }
     }
 
+    @Transactional
     private OAuth2User processOAuth2User(OAuth2UserRequest userRequest, OAuth2User oAuth2User) {
         String registrationId = userRequest.getClientRegistration().getRegistrationId();
 
@@ -93,7 +100,15 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         user.setRole(UserRole.RENTER); // Default role for new OAuth users
         user.setContactNumber(""); // Required field - can be updated later
 
-        return userRepository.save(user);
+        // Save user first to get the user_id
+        User savedUser = userRepository.save(user);
+
+        // Create corresponding Renter record (every user is a renter by default)
+        Renter renter = new Renter();
+        renter.setUser(savedUser);
+        renterRepository.save(renter);
+
+        return savedUser;
     }
 
     private User updateExistingUser(User existingUser, OAuth2UserInfo oAuth2UserInfo) {

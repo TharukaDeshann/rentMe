@@ -1,9 +1,6 @@
 package com.example.springrentMe.security;
 
-import com.example.springrentMe.security.oauth2.CustomOAuth2UserService;
-import com.example.springrentMe.security.oauth2.OAuth2LoginSuccessHandler;
 import com.example.springrentMe.utils.JwtAuthenticationFilter;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -22,7 +19,9 @@ import org.springframework.web.cors.CorsConfigurationSource;
 /**
  * Central Spring Security configuration.
  * Wires together: JWT filter, password encoder, authentication, and
- * authorization, plus OAuth2 support.
+ * authorization.
+ * OAuth2 is handled manually via /api/v1/auth/google endpoint using Google API
+ * client.
  */
 @Configuration
 @EnableWebSecurity
@@ -33,21 +32,13 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
-    private final CustomOAuth2UserService customOAuth2UserService;
-
-    private final OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
-
     private final CorsConfigurationSource corsConfigurationSource;
 
     public SecurityConfig(CustomUserDetailsService userDetailsService,
             JwtAuthenticationFilter jwtAuthenticationFilter,
-            CustomOAuth2UserService customOAuth2UserService,
-            OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler,
             CorsConfigurationSource corsConfigurationSource) {
         this.userDetailsService = userDetailsService;
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
-        this.customOAuth2UserService = customOAuth2UserService;
-        this.oAuth2LoginSuccessHandler = oAuth2LoginSuccessHandler;
         this.corsConfigurationSource = corsConfigurationSource;
     }
 
@@ -89,17 +80,14 @@ public class SecurityConfig {
                         // Admin-only endpoints
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
 
-                        // Owner-only endpoints
-                        .requestMatchers("/api/v1/owner/**").hasRole("OWNER")
+                        // Vehicle Owner-only endpoints
+                        .requestMatchers("/api/v1/owner/**").hasRole("VEHICLE_OWNER")
+
+                        // User endpoints - protected by @PreAuthorize annotations
+                        .requestMatchers("/api/v1/users/**").authenticated()
 
                         // All other endpoints require authentication
                         .anyRequest().authenticated())
-
-                // Configure OAuth2 login
-                .oauth2Login(oauth2 -> oauth2
-                        .userInfoEndpoint(userInfo -> userInfo
-                                .userService(customOAuth2UserService)) // Use our custom OAuth2 user service
-                        .successHandler(oAuth2LoginSuccessHandler)) // Use our custom success handler
 
                 // Stateless session (no session cookies, JWT only)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

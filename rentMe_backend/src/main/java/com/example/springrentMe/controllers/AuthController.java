@@ -1,6 +1,7 @@
 package com.example.springrentMe.controllers;
 
 import com.example.springrentMe.DTOs.AuthResponse;
+import com.example.springrentMe.DTOs.GoogleLoginRequest;
 import com.example.springrentMe.DTOs.LoginRequest;
 import com.example.springrentMe.DTOs.RegisterRequest;
 import com.example.springrentMe.models.User;
@@ -8,6 +9,7 @@ import com.example.springrentMe.repositories.UserRepository;
 import com.example.springrentMe.services.AuthService;
 import com.example.springrentMe.utils.CookieUtils;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -33,7 +35,7 @@ public class AuthController {
      * Sets JWT token in HTTP-only cookie for security
      */
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody RegisterRequest request, HttpServletResponse response) {
+    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request, HttpServletResponse response) {
         try {
             AuthResponse authResponse = authService.register(request);
 
@@ -64,7 +66,7 @@ public class AuthController {
      * Sets JWT token in HTTP-only cookie for security
      */
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest request, HttpServletResponse response) {
+    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request, HttpServletResponse response) {
         try {
             AuthResponse authResponse = authService.login(request);
 
@@ -92,16 +94,31 @@ public class AuthController {
     /**
      * Google OAuth login
      * POST /api/v1/auth/google
+     * Sets JWT token in HTTP-only cookie for security
      */
     @PostMapping("/google")
-    public ResponseEntity<?> googleLogin(@RequestBody String googleToken) {
+    public ResponseEntity<?> googleLogin(@RequestBody GoogleLoginRequest request, HttpServletResponse response) {
         try {
-            AuthResponse response = authService.googleLogin(googleToken);
-            return ResponseEntity.ok(response);
-        } catch (UnsupportedOperationException e) {
-            return ResponseEntity.status(501).body("Google OAuth not yet implemented");
+            AuthResponse authResponse = authService.googleLogin(request.getToken());
+
+            // Fetch user entity for cookie creation
+            User user = userRepository.findByEmail(authResponse.getEmail())
+                    .orElseThrow(() -> new RuntimeException("User not found after Google login"));
+
+            // Set JWT token in HTTP-only cookie using centralized utility
+            CookieUtils.setAuthCookies(response, authResponse.getToken(), user);
+
+            // Return user info (without token in body)
+            Map<String, Object> responseBody = new HashMap<>();
+            responseBody.put("success", true);
+            responseBody.put("message", "Google login successful");
+            responseBody.put("userId", authResponse.getUserId());
+            responseBody.put("email", authResponse.getEmail());
+            responseBody.put("role", authResponse.getRole());
+
+            return ResponseEntity.ok(responseBody);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.status(401).body("Google authentication failed: " + e.getMessage());
         }
     }
 
