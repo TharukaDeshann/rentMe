@@ -8,7 +8,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { createBooking, getVehicleById } from "@/services/booking.service";
+import bookingService from "@/services/booking.service";
+import vehicleService from "@/services/vehicle.service";
 import { Vehicle, Booking } from "@/types/booking";
 
 interface BookingFormProps {
@@ -40,7 +41,7 @@ export function BookingForm({ vehicle, vehicleId, onClose, onSuccess }: BookingF
       try {
         setVehicleLoading(true);
         setError(null);
-        const data = await getVehicleById(vehicleId);
+        const data = await vehicleService.getVehicleById(vehicleId);
         setCurrentVehicle(data);
       } catch (err: any) {
         setError(err.message || "Failed to load vehicle details.");
@@ -70,7 +71,7 @@ export function BookingForm({ vehicle, vehicleId, onClose, onSuccess }: BookingF
     try {
       setLoading(true);
       setError(null);
-      const booking = await createBooking({
+      const booking = await bookingService.createBooking({
         vehicleId: currentVehicle!.vehicleId,
         startDate,
         endDate,

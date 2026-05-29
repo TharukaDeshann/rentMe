@@ -16,7 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getVehicleById } from "@/services/booking.service";
+import vehicleService from "@/services/vehicle.service";
 import { Vehicle } from "@/types/booking";
 
 interface VehicleDetailPageProps {
@@ -41,7 +41,7 @@ export function VehicleDetailPage({
       try {
         setLoading(true);
         setError(null);
-        const data = await getVehicleById(vehicleId);
+        const data = await vehicleService.getVehicleById(vehicleId);
         setVehicle(data);
       } catch (err: any) {
         setError(err.message || "Failed to load vehicle details.");

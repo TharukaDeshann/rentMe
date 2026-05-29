@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { getAvailableVehicles } from "@/services/booking.service";
+import { getAvailableVehicles } from "@/services/vehicle.service";
 import { Vehicle, VehicleType } from "@/types/booking";
 
 interface BrowseVehiclesProps {

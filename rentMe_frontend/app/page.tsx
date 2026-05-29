@@ -1,6 +1,8 @@
 "use client"
+import authService from "@/services/auth.service";
 
 import { useState } from "react"
+import { useToast } from "@/hooks/use-toast"
 import { AppLayout } from "@/components/templates/layout/app-layout"
 import { BrowseVehicles } from "@/components/renter/browse-vehicles"
 import { VehicleDetailPage } from "@/components/renter/vehicle-detail-page"
@@ -39,31 +41,19 @@ export default function Home() {
   const [currentView, setCurrentView] = useState<"browse" | "detail">("browse")
   const [showProfileSidebar, setShowProfileSidebar] = useState(false)
   const [profileData, setProfileData] = useState<any>(null)
+  const { toast } = useToast()
 
   const handleLoginSuccess = async (email: string, password: string) => {
     try {
-      const response = await fetch('http://localhost:8080/api/v1/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({ email, password }),
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        localStorage.setItem('user_id', data.userId)
-        localStorage.setItem('user_email', data.email)
-        localStorage.setItem('user_role', data.role)
-        
-        setCurrentUser({ id: data.userId, name: data.email, email: data.email, image: "/woman-profile.png" })
-        setIsAuthenticated(true)
-        setAuthView("app")
-      } else {
-        throw new Error('Invalid email or password')
-      }
-    } catch (err) {
+      const data = await authService.login({ email, password });
+      
+      setCurrentUser({ id: data.userId.toString(), name: data.email, email: data.email, image: "/woman-profile.png" })
+      setCurrentRole((data.role as UserRole) || "renter")
+      setIsAuthenticated(true)
+      setAuthView("app")
+      toast({ title: "Login Successful", description: "Welcome back!" })
+    } catch (err: any) {
+      toast({ title: "Login Failed", description: err.response?.data?.message || err.message || "Invalid credentials", variant: "destructive" })
       throw err
     }
   }
@@ -76,38 +66,27 @@ export default function Home() {
     dateOfBirth?: string;
   }) => {
     try {
-      const response = await fetch('http://localhost:8080/api/v1/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          fullName: formData.fullName,
-          email: formData.email,
-          password: formData.password,
-          contactNumber: formData.phoneNumber,
-          role: 'RENTER',
-        }),
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        localStorage.setItem('user_id', data.userId)
-        localStorage.setItem('user_email', data.email)
-        localStorage.setItem('user_role', data.role)
-        
-        setCurrentUser({ id: data.userId, name: formData.fullName, email: formData.email, image: "/woman-profile.png" })
-        setIsAuthenticated(true)
-        setAuthView("app")
-      } else {
-        const errorData = await response.text()
-        throw new Error(errorData || 'Registration failed. Please try again.')
-      }
-    } catch (err) {
+      const data = await authService.register({
+        fullName: formData.fullName,
+        email: formData.email,
+        password: formData.password,
+        contactNumber: formData.phoneNumber,
+        dateOfBirth: formData.dateOfBirth,
+        role: "RENTER"
+      });
+      
+      setCurrentUser({ id: data.userId.toString(), name: formData.fullName, email: formData.email, image: "/woman-profile.png" })
+      setCurrentRole((data.role as UserRole) || "renter")
+      setIsAuthenticated(true)
+      setAuthView("app")
+      toast({ title: "Registration Successful", description: "Your account has been created." })
+    } catch (err: any) {
+      toast({ title: "Registration Failed", description: err.response?.data?.message || err.message || "Failed to create account", variant: "destructive" })
       throw err
     }
   }
+
+
 
   const handleLogout = () => {
     setIsAuthenticated(false)
