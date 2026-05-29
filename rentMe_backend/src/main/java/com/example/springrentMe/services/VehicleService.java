@@ -12,6 +12,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.example.springrentMe.repositories.BookingRepository;
+import java.util.ArrayList;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -25,6 +27,12 @@ public class VehicleService {
 
     @Autowired
     private VehicleOwnerRepository vehicleOwnerRepository;
+
+    @Autowired
+    private BookingRepository bookingRepository;
+
+    @Autowired
+    private DocumentService documentService;
 
     // ─────────────────────────────────────────────────────────────────────────
     // CREATE
@@ -171,6 +179,32 @@ public class VehicleService {
     public void deleteVehicle(Long vehicleId) {
         VehicleOwner owner = getOwnerForCurrentUser();
         Vehicle vehicle = findVehicleOwnedByOrThrow(vehicleId, owner.getVehicleOwnerId());
+        
+        // Check for active bookings
+        if (vehicle.getBookings() != null) {
+            boolean hasActiveBookings = vehicle.getBookings().stream()
+                    .anyMatch(b -> b.getStatus() == BookingStatus.PENDING 
+                            || b.getStatus() == BookingStatus.APPROVED 
+                            || b.getStatus() == BookingStatus.ONGOING);
+            if (hasActiveBookings) {
+                throw new RuntimeException("Cannot delete vehicle because it has pending, approved, or ongoing bookings. Please resolve them first.");
+            }
+        }
+        
+        // 1. Delete related documents (also cleans up filesystem/S3 files)
+        if (vehicle.getDocuments() != null) {
+            List<Document> docs = new ArrayList<>(vehicle.getDocuments());
+            for (Document doc : docs) {
+                documentService.deleteDocument(doc.getDocumentId());
+            }
+        }
+        
+        // 2. Delete related bookings
+        if (vehicle.getBookings() != null) {
+            bookingRepository.deleteAll(vehicle.getBookings());
+        }
+        
+        // 3. Delete the vehicle itself
         vehicleRepository.delete(vehicle);
     }
 
@@ -248,8 +282,6 @@ public class VehicleService {
         vehicle.setCapacity(request.getCapacity());
         vehicle.setDailyPrice(request.getDailyPrice());
         vehicle.setDescription(request.getDescription());
-        vehicle.setPictures(request.getPictures());
-        vehicle.setLegalDocuments(request.getLegalDocuments());
         vehicle.setPickupLocation(request.getPickupLocation());
         vehicle.setLatitude(request.getLatitude());
         vehicle.setLongitude(request.getLongitude());
@@ -275,8 +307,15 @@ public class VehicleService {
         dto.setCapacity(vehicle.getCapacity());
         dto.setDailyPrice(vehicle.getDailyPrice());
         dto.setDescription(vehicle.getDescription());
-        dto.setPictures(vehicle.getPictures());
-        dto.setLegalDocuments(vehicle.getLegalDocuments());
+        
+        List<String> picUrls = vehicle.getDocuments() != null
+            ? vehicle.getDocuments().stream()
+                .filter(d -> d.getDocumentType() == com.example.springrentMe.models.DocumentType.VEHICLE_PICTURE)
+                .map(com.example.springrentMe.models.Document::getFileUrl)
+                .collect(Collectors.toList())
+            : new java.util.ArrayList<>();
+        dto.setPictures(picUrls);
+        
         dto.setPickupLocation(vehicle.getPickupLocation());
         dto.setLatitude(vehicle.getLatitude());
         dto.setLongitude(vehicle.getLongitude());

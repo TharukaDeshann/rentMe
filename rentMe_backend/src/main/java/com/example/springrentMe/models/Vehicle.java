@@ -58,14 +58,8 @@ public class Vehicle {
     @Column(length = 1000)
     private String description;
 
-    // Stored as a comma-separated list of Cloudinary URLs or JSON array string
-    @Column(name = "pictures", columnDefinition = "TEXT")
-    private String pictures;
-
-    // Legal documents - stored as JSON string of URLs {"registration": "...",
-    // "insurance": "..."}
-    @Column(name = "legal_documents", columnDefinition = "TEXT")
-    private String legalDocuments;
+    @OneToMany(mappedBy = "vehicle", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<Document> documents;
 
     // Pickup location details
     @NotBlank(message = "Pickup location address is required")

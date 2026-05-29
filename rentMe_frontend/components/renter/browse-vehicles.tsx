@@ -18,13 +18,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { getAvailableVehicles } from "@/services/vehicle.service";
-import { Vehicle, VehicleType } from "@/types/booking";
+import { Vehicle, VehicleType, VEHICLE_TYPES } from "@/types/booking";
 
 interface BrowseVehiclesProps {
   onViewDetails: (vehicleId: number) => void;
 }
 
-const VEHICLE_TYPES: VehicleType[] = ["SEDAN", "SUV", "TRUCK", "VAN"];
 
 export function BrowseVehicles({ onViewDetails }: BrowseVehiclesProps) {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -65,9 +64,9 @@ export function BrowseVehicles({ onViewDetails }: BrowseVehiclesProps) {
       .includes(searchLocation.toLowerCase());
   });
 
-  const firstPicture = (pictures?: string) => {
+  const firstPicture = (pictures?: string[] | string) => {
     if (!pictures) return "/placeholder.jpg";
-    // pictures can be a single URL or comma-separated list
+    if (Array.isArray(pictures)) return pictures[0] || "/placeholder.jpg";
     return pictures.split(",")[0].trim();
   };
 

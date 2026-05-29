@@ -24,16 +24,25 @@ import { RegistrationPage } from "@/components/auth/registration-page"
 import { UserProfilePage } from "@/components/auth/user-profile-page"
 import { ProfileSidebar } from "@/components/auth/profile-sidebar"
 import { getCurrentUserInfo } from "@/utils/user-info" // Declare the variable here
+import { UserRole as BackendUserRole } from "@/types";
 
 type UserRole = "renter" | "owner" | "admin"
 type AuthView = "login" | "register" | "app" | "profile"
+
+const mapRole = (role?: BackendUserRole | string | null): UserRole => {
+  if (!role) return "renter";
+  const r = typeof role === 'string' ? role.toUpperCase() : role;
+  if (r === BackendUserRole.ADMIN || r === "ADMIN") return "admin";
+  if (r === BackendUserRole.VEHICLE_OWNER || r === "VEHICLE_OWNER") return "owner";
+  return "renter";
+};
 
 export default function Home() {
   const [authView, setAuthView] = useState<AuthView>("login")
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [currentUser, setCurrentUser] = useState({ id: "", name: "", email: "", image: "/woman-profile.png" })
   const [currentRole, setCurrentRole] = useState<UserRole>("renter")
-  const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null)
+  const [selectedVehicleId, setSelectedVehicleId] = useState<number | null>(null)
   const [showBookingForm, setShowBookingForm] = useState(false)
   const [showChatInterface, setShowChatInterface] = useState(false)
   const [showChatsList, setShowChatsList] = useState(false)
@@ -48,7 +57,7 @@ export default function Home() {
       const data = await authService.login({ email, password });
       
       setCurrentUser({ id: data.userId.toString(), name: data.email, email: data.email, image: "/woman-profile.png" })
-      setCurrentRole((data.role as UserRole) || "renter")
+      setCurrentRole(mapRole(data.role))
       setIsAuthenticated(true)
       setAuthView("app")
       toast({ title: "Login Successful", description: "Welcome back!" })
@@ -72,11 +81,11 @@ export default function Home() {
         password: formData.password,
         contactNumber: formData.phoneNumber,
         dateOfBirth: formData.dateOfBirth,
-        role: "RENTER"
+        role: BackendUserRole.RENTER
       });
       
       setCurrentUser({ id: data.userId.toString(), name: formData.fullName, email: formData.email, image: "/woman-profile.png" })
-      setCurrentRole((data.role as UserRole) || "renter")
+      setCurrentRole(mapRole(data.role))
       setIsAuthenticated(true)
       setAuthView("app")
       toast({ title: "Registration Successful", description: "Your account has been created." })
@@ -101,7 +110,7 @@ export default function Home() {
     setProfileData(null)
   }
 
-  const handleViewDetails = (vehicleId: string) => {
+  const handleViewDetails = (vehicleId: number) => {
     setSelectedVehicleId(vehicleId)
     setCurrentView("detail")
   }
@@ -303,7 +312,7 @@ export default function Home() {
 
       {showChatInterface && selectedVehicleId && (
         <ChatInterface
-          vehicleId={selectedVehicleId}
+          vehicleId={selectedVehicleId.toString()}
           currentUserId="renter-1"
           onClose={() => {
             setShowChatInterface(false)
@@ -326,15 +335,11 @@ export default function Home() {
       {/* Profile Sidebar */}
       {showProfileSidebar && (
         <ProfileSidebar
-          userName={currentUser.name}
-          userEmail={currentUser.email}
-          userImage={currentUser.image}
           onManageProfile={() => {
             setAuthView("profile")
             setShowProfileSidebar(false)
             setProfileData(null)
           }}
-          onLogout={handleLogout}
           onClose={() => setShowProfileSidebar(false)}
         />
       )}

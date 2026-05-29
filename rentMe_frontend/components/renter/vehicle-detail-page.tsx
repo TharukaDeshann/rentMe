@@ -10,6 +10,8 @@ import {
   MapPin,
   Loader2,
   AlertCircle,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -35,6 +37,7 @@ export function VehicleDetailPage({
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
 
   useEffect(() => {
     const fetch = async () => {
@@ -52,10 +55,19 @@ export function VehicleDetailPage({
     fetch();
   }, [vehicleId]);
 
-  const firstPicture = (pictures?: string) => {
+  const firstPicture = (pictures?: string[] | string) => {
     if (!pictures) return "/placeholder.jpg";
+    if (Array.isArray(pictures)) return pictures[0] || "/placeholder.jpg";
     return pictures.split(",")[0].trim();
   };
+
+  const picturesList = vehicle
+    ? (Array.isArray(vehicle.pictures)
+      ? vehicle.pictures
+      : vehicle.pictures
+        ? (vehicle.pictures as string).split(",").map((p) => p.trim()).filter(Boolean)
+        : [])
+    : [];
 
   if (loading) {
     return (
@@ -124,14 +136,75 @@ export function VehicleDetailPage({
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Left Column */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Image */}
-          <div className="relative h-96 w-full overflow-hidden rounded-lg bg-muted">
-            <img
-              src={firstPicture(vehicle.pictures)}
-              alt={`${vehicle.make} ${vehicle.model}`}
-              onError={(e) => (e.currentTarget.src = "/placeholder.jpg")}
-              className="h-full w-full object-cover"
-            />
+          {/* Interactive Image Gallery */}
+          <div className="space-y-3">
+            <div className="relative h-[420px] w-full overflow-hidden rounded-xl bg-muted border border-border shadow-sm group">
+              <img
+                src={picturesList[activeImageIndex] || "/placeholder.jpg"}
+                alt={`${vehicle.make} ${vehicle.model}`}
+                onError={(e) => (e.currentTarget.src = "/placeholder.jpg")}
+                className="h-full w-full object-cover transition-all duration-500 hover:scale-[1.02]"
+              />
+
+              {/* Navigation Chevrons */}
+              {picturesList.length > 1 && (
+                <>
+                  <button
+                    onClick={() =>
+                      setActiveImageIndex((prev) =>
+                        prev === 0 ? picturesList.length - 1 : prev - 1
+                      )
+                    }
+                    className="absolute left-3 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 backdrop-blur-sm rounded-full p-2 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                    aria-label="Previous image"
+                  >
+                    <ChevronLeft className="h-5 w-5" />
+                  </button>
+                  <button
+                    onClick={() =>
+                      setActiveImageIndex((prev) =>
+                        prev === picturesList.length - 1 ? 0 : prev + 1
+                      )
+                    }
+                    className="absolute right-3 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 backdrop-blur-sm rounded-full p-2 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                    aria-label="Next image"
+                  >
+                    <ChevronRight className="h-5 w-5" />
+                  </button>
+                </>
+              )}
+
+              {/* Page indicator overlay */}
+              {picturesList.length > 1 && (
+                <div className="absolute bottom-4 right-4 bg-black/65 backdrop-blur-md px-3 py-1 rounded-full text-xs font-semibold text-white shadow-sm border border-white/10 select-none">
+                  {activeImageIndex + 1} / {picturesList.length}
+                </div>
+              )}
+            </div>
+
+            {/* Thumbnails list */}
+            {picturesList.length > 1 && (
+              <div className="flex gap-2.5 overflow-x-auto pb-1 scrollbar-thin">
+                {picturesList.map((pic, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setActiveImageIndex(idx)}
+                    className={`relative h-16 w-24 rounded-lg overflow-hidden border bg-muted flex-shrink-0 transition-all duration-200 ${
+                      idx === activeImageIndex
+                        ? "ring-2 ring-primary ring-offset-2 border-primary scale-[1.02]"
+                        : "border-border opacity-70 hover:opacity-100 hover:scale-[1.01]"
+                    }`}
+                  >
+                    <img
+                      src={pic}
+                      alt={`${vehicle.make} ${vehicle.model} thumbnail ${idx + 1}`}
+                      onError={(e) => (e.currentTarget.src = "/placeholder.jpg")}
+                      className="h-full w-full object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Description */}

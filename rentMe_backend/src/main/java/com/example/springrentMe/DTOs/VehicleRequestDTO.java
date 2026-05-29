@@ -40,12 +40,6 @@ public class VehicleRequestDTO {
     @Size(max = 1000, message = "Description must not exceed 1000 characters")
     private String description;
 
-    // Cloudinary URL string or comma-separated list of URLs
-    private String pictures;
-
-    // JSON string: {"registration": "url", "insurance": "url"}
-    private String legalDocuments;
-
     @NotBlank(message = "Pickup location is required")
     @Size(max = 255)
     private String pickupLocation;

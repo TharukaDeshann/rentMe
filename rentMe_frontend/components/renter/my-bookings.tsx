@@ -85,8 +85,9 @@ export function MyBookings() {
     }
   };
 
-  const firstPicture = (pictures?: string) => {
+  const firstPicture = (pictures?: string[] | string) => {
     if (!pictures) return "/placeholder.jpg";
+    if (Array.isArray(pictures)) return pictures[0] || "/placeholder.jpg";
     return pictures.split(",")[0].trim();
   };
 

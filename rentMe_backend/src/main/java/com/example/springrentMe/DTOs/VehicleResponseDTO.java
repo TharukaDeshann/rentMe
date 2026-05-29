@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * DTO returned for vehicle read operations.
@@ -23,8 +24,7 @@ public class VehicleResponseDTO {
     private Integer capacity;
     private BigDecimal dailyPrice;
     private String description;
-    private String pictures;
-    private String legalDocuments;
+    private List<String> pictures;
     private String pickupLocation;
     private Double latitude;
     private Double longitude;

@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * DTO returned for all booking read operations.
@@ -39,7 +40,7 @@ public class BookingResponseDTO {
     private String vehicleModel;
     private String vehicleType;
     private String vehiclePickupLocation;
-    private String vehiclePictures;
+    private List<String> vehiclePictures;
 
     // Renter summary
     private Long renterId;

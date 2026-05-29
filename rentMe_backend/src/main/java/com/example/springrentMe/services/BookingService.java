@@ -391,7 +391,15 @@ public class BookingService {
             dto.setVehicleModel(vehicle.getModel());
             dto.setVehicleType(vehicle.getType() != null ? vehicle.getType().name() : null);
             dto.setVehiclePickupLocation(vehicle.getPickupLocation());
-            dto.setVehiclePictures(vehicle.getPictures());
+            
+            List<String> picUrls = vehicle.getDocuments() != null
+                ? vehicle.getDocuments().stream()
+                    .filter(d -> d.getDocumentType() == com.example.springrentMe.models.DocumentType.VEHICLE_PICTURE)
+                    .map(com.example.springrentMe.models.Document::getFileUrl)
+                    .collect(Collectors.toList())
+                : new java.util.ArrayList<>();
+            dto.setVehiclePictures(picUrls);
+            
             dto.setDailyPrice(vehicle.getDailyPrice());
 
             VehicleOwner owner = vehicle.getVehicleOwner();

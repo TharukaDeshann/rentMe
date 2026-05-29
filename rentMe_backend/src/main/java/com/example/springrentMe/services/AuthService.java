@@ -101,7 +101,6 @@ public class AuthService {
             VehicleOwner vehicleOwner = new VehicleOwner();
             vehicleOwner.setUser(savedUser);
             vehicleOwner.setVerificationStatus(VerificationStatus.NOT_SUBMITTED);
-            vehicleOwner.setVerificationDocuments("{}");
             vehicleOwnerRepository.save(vehicleOwner);
         } else if (requestedRole == UserRole.ADMIN) {
             Admin admin = new Admin();

@@ -1,42 +1,39 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Edit2, Trash2, Eye, EyeOff, Loader2 } from "lucide-react";
+import { Plus, Edit2, Trash2, Eye, EyeOff, Loader2, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
 import vehicleService from "@/services/vehicle.service";
-import { useToast } from '@/hooks/use-toast';
+import bookingService from "@/services/booking.service";
+import documentService from "@/services/document.service";
+import { useToast } from "@/hooks/use-toast";
+import { VehicleFormModal } from "@/components/modals/VehicleFormModal";
+import { VehicleDocumentsModal } from "@/components/modals/VehicleDocumentsModal";
+import { ConfirmDeleteModal } from "@/components/modals/ConfirmDeleteModal";
 
 export function MyVehicles() {
   const [ownerVehicles, setOwnerVehicles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showEditDialog, setShowEditDialog] = useState(false);
-  const [showAddDialog, setShowAddDialog] = useState(false);
+  const { toast } = useToast();
+
+  // Modals Visibility
+  const [showFormModal, setShowFormModal] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState<any>(null);
 
-  // Form State
-  const [formData, setFormData] = useState({
-    make: "",
-    model: "",
-    type: "SEDAN",
-    capacity: "5",
-    dailyPrice: "",
-    pickupLocation: "",
-    latitude: "6.9271",
-    longitude: "79.8612"
-  });
-  const { toast } = useToast();
-  const [formError, setFormError] = useState<string | null>(null);
+  const [showDocsModal, setShowDocsModal] = useState(false);
+  const [selectedVehicleForDocs, setSelectedVehicleForDocs] = useState<any>(null);
+
+  // Delete Confirmation Modal State
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletingVehicleId, setDeletingVehicleId] = useState<number | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [checkingDelete, setCheckingDelete] = useState(false);
+  const [deleteWarningData, setDeleteWarningData] = useState<{
+    docCount: number;
+    bookingCount: number;
+  } | null>(null);
 
   const fetchMyVehicles = async () => {
     try {
@@ -56,190 +53,95 @@ export function MyVehicles() {
 
   const handleEdit = (vehicle: any) => {
     setSelectedVehicle(vehicle);
-    setFormData({
-      make: vehicle.make || "",
-      model: vehicle.model || "",
-      type: vehicle.type || "SEDAN",
-      capacity: vehicle.capacity?.toString() || "5",
-      dailyPrice: vehicle.dailyPrice?.toString() || "",
-      pickupLocation: vehicle.pickupLocation || "",
-      latitude: vehicle.latitude?.toString() || "6.9271",
-      longitude: vehicle.longitude?.toString() || "79.8612"
-    });
-    setShowEditDialog(true);
+    setShowFormModal(true);
   };
 
   const handleAddOpen = () => {
-    setFormData({
-      make: "",
-      model: "",
-      type: "SEDAN",
-      capacity: "5",
-      dailyPrice: "",
-      pickupLocation: "",
-      latitude: "6.9271",
-      longitude: "79.8612"
-    });
-    setShowAddDialog(true);
+    setSelectedVehicle(null);
+    setShowFormModal(true);
   };
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handleAddSubmit = async () => {
-    setIsSubmitting(true);
-    setFormError(null);
-    // Basic client-side validation
-    if (!formData.make || !formData.model || !formData.pickupLocation) {
-      setFormError('Please fill in Make, Model and Pickup Location.');
-      setIsSubmitting(false);
-      return;
-    }
-    const capacityNum = parseInt(formData.capacity as string) || 0;
-    const priceNum = parseFloat(formData.dailyPrice as string) || 0;
-    if (capacityNum < 1) {
-      setFormError('Capacity must be at least 1.');
-      setIsSubmitting(false);
-      return;
-    }
-    if (priceNum <= 0) {
-      setFormError('Daily price must be greater than 0.');
-      setIsSubmitting(false);
-      return;
-    }
-    // Role check: require VEHICLE_OWNER
-    const role = typeof window !== 'undefined' ? localStorage.getItem('user_role') : null;
-    if (role !== 'VEHICLE_OWNER') {
-      setFormError('You must be a verified vehicle owner to add vehicles. Please complete owner verification.');
-      setIsSubmitting(false);
-      return;
-    }
+  const handleDeleteClick = async (vehicleId: number) => {
     try {
-      await vehicleService.createVehicle({
-        ...formData,
-        capacity: parseInt(formData.capacity) || 5,
-        dailyPrice: parseFloat(formData.dailyPrice) || 0.0,
-        latitude: parseFloat(formData.latitude) || 0.0,
-        longitude: parseFloat(formData.longitude) || 0.0,
-        pictures: "https://via.placeholder.com/400x250",
-        legalDocuments: "{}"
+      setCheckingDelete(true);
+      setDeletingVehicleId(vehicleId);
+      const docs = await documentService.getVehicleDocuments(vehicleId);
+      const allBookings = await bookingService.getMyBookingsAsOwner();
+      const vehicleBookings = allBookings.filter((b) => b.vehicleId === vehicleId);
+
+      const activeBookings = vehicleBookings.filter((b) =>
+        ["PENDING", "APPROVED", "ONGOING"].includes(b.status)
+      );
+
+      if (activeBookings.length > 0) {
+        toast({
+          title: "Deletion prevented",
+          description: "This vehicle has pending, approved, or ongoing bookings and cannot be deleted. Please resolve them first.",
+          variant: "destructive",
+        });
+        setDeletingVehicleId(null);
+        return;
+      }
+
+      setDeleteWarningData({
+        docCount: docs.length,
+        bookingCount: vehicleBookings.length,
       });
-      setShowAddDialog(false);
-      fetchMyVehicles();
-      toast({ title: 'Vehicle added', description: 'Your vehicle was listed successfully.' });
-    } catch (error) {
+      setShowDeleteModal(true);
+    } catch (error: any) {
       console.error(error);
-      // Surface backend error message
-      const msg = error?.response?.data?.message || error?.message || 'Failed to add vehicle';
-      setFormError(msg);
-      toast({ title: 'Add vehicle failed', description: msg, variant: 'destructive' });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleEditSubmit = async () => {
-    setIsSubmitting(true);
-    try {
-      await vehicleService.updateVehicle(selectedVehicle.vehicleId, {
-        ...formData,
-        capacity: parseInt(formData.capacity) || 5,
-        dailyPrice: parseFloat(formData.dailyPrice) || 0.0,
-        latitude: parseFloat(formData.latitude) || 0.0,
-        longitude: parseFloat(formData.longitude) || 0.0,
+      toast({
+        title: "Check failed",
+        description: "Failed to verify vehicle booking status.",
+        variant: "destructive",
       });
-      setShowEditDialog(false);
-      fetchMyVehicles();
-      toast({ title: 'Vehicle updated', description: 'Changes saved.' });
-    } catch (error) {
-      console.error(error);
+      setDeletingVehicleId(null);
     } finally {
-      setIsSubmitting(false);
+      setCheckingDelete(false);
     }
   };
 
-  const handleDelete = async (id: number) => {
+  const confirmDelete = async () => {
+    if (!deletingVehicleId) return;
     try {
-      await vehicleService.deleteVehicle(id);
+      setDeleteLoading(true);
+      await vehicleService.deleteVehicle(deletingVehicleId);
+      setShowDeleteModal(false);
+      setDeletingVehicleId(null);
+      setDeleteWarningData(null);
       fetchMyVehicles();
-    } catch (error) {
+      toast({ title: "Vehicle deleted", description: "Vehicle removed successfully." });
+    } catch (error: any) {
       console.error(error);
+      toast({
+        title: "Delete failed",
+        description: error.message || "Failed to delete vehicle.",
+        variant: "destructive",
+      });
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
   const handleToggleListing = async (vehicle: any) => {
     try {
       await vehicleService.updateVehicleAvailability(vehicle.vehicleId, {
-        isListed: !vehicle.isListed
+        isListed: !vehicle.isListed,
       });
       fetchMyVehicles();
+      toast({
+        title: vehicle.isListed ? "Vehicle unlisted" : "Vehicle listed",
+        description: `Vehicle is now ${vehicle.isListed ? "hidden" : "visible"} to renters.`,
+      });
     } catch (error) {
       console.error(error);
     }
   };
 
-  const VehicleFormContent = () => (
-    <div className="grid gap-4 py-2">
-      <div className="grid grid-cols-3 items-center gap-4">
-        <Label className="text-right text-sm text-muted-foreground">Make</Label>
-        <Input 
-          value={formData.make} 
-          onChange={(e) => handleInputChange("make", e.target.value)}
-          placeholder="Toyota" className="col-span-2 h-9" 
-        />
-      </div>
-      <div className="grid grid-cols-3 items-center gap-4">
-        <Label className="text-right text-sm text-muted-foreground">Model</Label>
-        <Input 
-          value={formData.model} 
-          onChange={(e) => handleInputChange("model", e.target.value)}
-          placeholder="Camry" className="col-span-2 h-9" 
-        />
-      </div>
-      <div className="grid grid-cols-3 items-center gap-4">
-        <Label className="text-right text-sm text-muted-foreground">Type</Label>
-        <div className="col-span-2">
-          <Select value={formData.type} onValueChange={(val) => handleInputChange("type", val)}>
-            <SelectTrigger className="h-9">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {["SEDAN", "SUV", "TRUCK", "VAN", "HATCHBACK"].map((t) => (
-                <SelectItem key={t} value={t}>{t}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-      <div className="grid grid-cols-3 items-center gap-4">
-        <Label className="text-right text-sm text-muted-foreground">Capacity (Seats)</Label>
-        <Input 
-          type="number"
-          value={formData.capacity} 
-          onChange={(e) => handleInputChange("capacity", e.target.value)}
-          placeholder="5" className="col-span-2 h-9" 
-        />
-      </div>
-      <div className="grid grid-cols-3 items-center gap-4">
-        <Label className="text-right text-sm text-muted-foreground">Daily Price ($)</Label>
-        <Input 
-          type="number" step="0.01"
-          value={formData.dailyPrice} 
-          onChange={(e) => handleInputChange("dailyPrice", e.target.value)}
-          placeholder="49.99" className="col-span-2 h-9" 
-        />
-      </div>
-      <div className="grid grid-cols-3 items-center gap-4">
-        <Label className="text-right text-sm text-muted-foreground">Pickup Location</Label>
-        <Input 
-          value={formData.pickupLocation} 
-          onChange={(e) => handleInputChange("pickupLocation", e.target.value)}
-          placeholder="Colombo 03" className="col-span-2 h-9" 
-        />
-      </div>
-    </div>
-  );
+  const handleManageDocs = (vehicle: any) => {
+    setSelectedVehicleForDocs(vehicle);
+    setShowDocsModal(true);
+  };
 
   return (
     <div className="space-y-6 p-6 lg:p-8">
@@ -274,7 +176,11 @@ export function MyVehicles() {
                 <div className="grid sm:grid-cols-[160px_1fr] gap-0">
                   <div className="relative h-36 sm:h-auto bg-muted overflow-hidden">
                     <img
-                      src={vehicle.pictures?.split(',')[0]?.trim() || "/placeholder.jpg"}
+                      src={
+                        (Array.isArray(vehicle.pictures)
+                          ? vehicle.pictures[0]
+                          : vehicle.pictures?.split(",")[0]?.trim()) || "/placeholder.jpg"
+                      }
                       alt={`${vehicle.make} ${vehicle.model}`}
                       onError={(e) => (e.currentTarget.src = "/placeholder.jpg")}
                       className="h-full w-full object-cover"
@@ -303,15 +209,39 @@ export function MyVehicles() {
                     </div>
 
                     <div className="flex gap-1.5 ml-auto">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1.5 h-8 text-primary hover:text-primary hover:bg-primary/5"
+                        onClick={() => handleManageDocs(vehicle)}
+                      >
+                        <FileText className="h-3.5 w-3.5" />
+                        Docs
+                      </Button>
                       <Button size="sm" variant="outline" className="gap-1.5 h-8" onClick={() => handleEdit(vehicle)}>
                         <Edit2 className="h-3.5 w-3.5" />
                         Edit
                       </Button>
-                      <Button size="sm" variant="outline" className="gap-1.5 h-8 text-muted-foreground hover:text-foreground" onClick={() => handleToggleListing(vehicle)}>
-                         {vehicle.isListed ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1.5 h-8 text-muted-foreground hover:text-foreground"
+                        onClick={() => handleToggleListing(vehicle)}
+                      >
+                        {vehicle.isListed ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                       </Button>
-                      <Button size="sm" variant="outline" className="h-8 text-destructive hover:text-destructive hover:bg-destructive/8" onClick={() => handleDelete(vehicle.vehicleId)}>
-                        <Trash2 className="h-3.5 w-3.5" />
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 text-destructive hover:text-destructive hover:bg-destructive/8"
+                        onClick={() => handleDeleteClick(vehicle.vehicleId)}
+                        disabled={checkingDelete && deletingVehicleId === vehicle.vehicleId}
+                      >
+                        {checkingDelete && deletingVehicleId === vehicle.vehicleId ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-3.5 w-3.5" />
+                        )}
                       </Button>
                     </div>
                   </div>
@@ -322,37 +252,48 @@ export function MyVehicles() {
         </div>
       )}
 
-      {/* Edit dialog */}
-      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Edit Vehicle</DialogTitle>
-          </DialogHeader>
-          <VehicleFormContent />
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowEditDialog(false)} disabled={isSubmitting}>Cancel</Button>
-            <Button onClick={handleEditSubmit} disabled={isSubmitting}>
-              {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Changes"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Unified Add / Edit Vehicle Modal */}
+      <VehicleFormModal
+        open={showFormModal}
+        onOpenChange={setShowFormModal}
+        vehicle={selectedVehicle}
+        onSuccess={fetchMyVehicles}
+      />
 
-      {/* Add dialog */}
-      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Add New Vehicle</DialogTitle>
-          </DialogHeader>
-          <VehicleFormContent />
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddDialog(false)} disabled={isSubmitting}>Cancel</Button>
-            <Button onClick={handleAddSubmit} disabled={isSubmitting}>
-              {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add Vehicle"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Document management Modal */}
+      <VehicleDocumentsModal
+        open={showDocsModal}
+        onOpenChange={setShowDocsModal}
+        vehicle={selectedVehicleForDocs}
+        onSuccess={fetchMyVehicles}
+      />
+
+      {/* Reusable Delete Confirmation Modal */}
+      <ConfirmDeleteModal
+        open={showDeleteModal}
+        onOpenChange={setShowDeleteModal}
+        onConfirm={confirmDelete}
+        title="Delete Vehicle"
+        isLoading={deleteLoading}
+        description={
+          <div className="space-y-3">
+            <p className="font-medium text-destructive">
+              Warning: This is a permanent action that cannot be undone.
+            </p>
+            <div className="text-xs text-muted-foreground space-y-1 bg-destructive/5 p-3 rounded-md border border-destructive/10">
+              <p>Deleting this vehicle will also permanently delete:</p>
+              <ul className="list-disc pl-4 space-y-0.5">
+                <li>Associated vehicle documents ({deleteWarningData?.docCount || 0} files)</li>
+                <li>All past completed or cancelled bookings ({deleteWarningData?.bookingCount || 0} bookings)</li>
+                <li>All uploaded vehicle pictures</li>
+              </ul>
+            </div>
+            <p className="text-xs">
+              Are you sure you want to delete this vehicle listing from the system?
+            </p>
+          </div>
+        }
+      />
     </div>
   );
 }
