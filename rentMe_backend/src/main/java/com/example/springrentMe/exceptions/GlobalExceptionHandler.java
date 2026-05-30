@@ -42,6 +42,39 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Handle access denied exceptions
+     */
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    public ResponseEntity<Map<String, Object>> handleAccessDeniedException(org.springframework.security.access.AccessDeniedException ex) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", false);
+        response.put("message", "Access denied: " + ex.getMessage());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+    }
+
+    /**
+     * Handle ChatSessionException
+     */
+    @ExceptionHandler(ChatSessionException.class)
+    public ResponseEntity<Map<String, Object>> handleChatSessionException(ChatSessionException ex) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", false);
+        response.put("message", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(response);
+    }
+
+    /**
+     * Handle MessageValidationException
+     */
+    @ExceptionHandler(MessageValidationException.class)
+    public ResponseEntity<Map<String, Object>> handleMessageValidationException(MessageValidationException ex) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", false);
+        response.put("message", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
+    /**
      * Handle generic runtime exceptions
      */
     @ExceptionHandler(RuntimeException.class)

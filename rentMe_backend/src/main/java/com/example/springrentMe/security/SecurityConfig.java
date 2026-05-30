@@ -76,6 +76,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/public/**").permitAll() // Public vehicle search
                         .requestMatchers("/error").permitAll()
                         .requestMatchers("/oauth2/**").permitAll() // OAuth2 endpoints
+                        .requestMatchers("/ws/**").permitAll() // WebSocket handshake endpoint
 
                         // Admin-only endpoints
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
