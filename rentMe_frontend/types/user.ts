@@ -23,6 +23,10 @@ export interface User {
   authProvider: AuthProvider;
   dateOfBirth?: string;
   profilePicture?: string;
+  isActive?: boolean;
+  emailVerified?: boolean;
+  roles?: string[];           // multi-role set from backend
+  verificationStatus?: string; // for vehicle owners
   createdAt?: string;
   updatedAt?: string;
 }

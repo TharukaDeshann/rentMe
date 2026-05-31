@@ -53,8 +53,8 @@ function StepBadge({
           done
             ? "bg-secondary text-secondary-foreground"
             : active
-            ? "bg-primary text-primary-foreground"
-            : "bg-muted text-muted-foreground"
+              ? "bg-primary text-primary-foreground"
+              : "bg-muted text-muted-foreground"
         )}
       >
         {done ? <CheckCircle2 className="h-4 w-4" /> : step}
@@ -315,7 +315,7 @@ function DocumentUploadStep({
       <VehicleDocumentUpload
         vehicleId={vehicle.vehicleId}
         showExisting={false}
-        onUploaded={() => {}}
+        onUploaded={() => { }}
       />
 
       <Button variant="outline" onClick={onDone} className="w-full gap-2">

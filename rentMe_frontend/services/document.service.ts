@@ -32,7 +32,12 @@ export const uploadVehicleDocuments = async (
 
     const response = await apiClient.post<Document[]>(
       `/owner/vehicles/${vehicleId}/documents`,
-      form
+      form,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
     );
     return response.data;
   } catch (error) {

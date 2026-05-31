@@ -39,7 +39,12 @@ export const submitVerificationRequest = async (
 
     const response = await apiClient.post<VerificationRequest>(
       "/owner/verification/request",
-      form
+      form,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
     );
     return response.data;
   } catch (error) {
@@ -102,7 +107,12 @@ export const addDocumentsToRequest = async (
 
     const response = await apiClient.post<Document[]>(
       `/owner/verification/${requestId}/documents`,
-      form
+      form,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
     );
     return response.data;
   } catch (error) {

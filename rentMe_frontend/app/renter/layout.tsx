@@ -10,6 +10,7 @@ import { Car, Grid3x3, ShoppingCart, MessageSquare, LogOut, User } from 'lucide-
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useUnreadCount } from '@/hooks/useUnreadCount';
 
 const NAV_LINKS = [
   { href: '/renter',          label: 'Browse Vehicles', icon: Grid3x3 },
@@ -25,6 +26,7 @@ export default function RenterLayout({ children }: { children: React.ReactNode }
   const { user, isAuthenticated, isLoading, logout } = useAuth();
   const router   = useRouter();
   const pathname = usePathname();
+  const { unreadCount } = useUnreadCount();
 
   useEffect(() => {
     if (!isLoading) {
@@ -82,7 +84,12 @@ export default function RenterLayout({ children }: { children: React.ReactNode }
                 )}
               >
                 <Icon className="h-4 w-4 shrink-0" />
-                {label}
+                <span className="flex-1">{label}</span>
+                {label === 'Messages' && unreadCount > 0 && (
+                  <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground px-1.5 py-0.5">
+                    {unreadCount}
+                  </span>
+                )}
               </Link>
             );
           })}
@@ -122,10 +129,15 @@ export default function RenterLayout({ children }: { children: React.ReactNode }
               <Link
                 key={href}
                 href={href}
-                className={cn('topnav-link', pathname === href && 'active')}
+                className={cn('topnav-link relative', pathname === href && 'active')}
               >
                 <Icon className="h-4 w-4" />
                 <span className="hidden sm:inline">{label}</span>
+                {label === 'Messages' && unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-primary-foreground">
+                    {unreadCount}
+                  </span>
+                )}
               </Link>
             ))}
           </nav>

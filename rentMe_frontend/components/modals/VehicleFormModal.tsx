@@ -422,7 +422,7 @@ export function VehicleFormModal({
                   </span>
                   <span className="text-[10px] text-muted-foreground">JPEG, PNG, WEBP (Max 10MB)</span>
                 </div>
-                
+
                 {/* Selected Files Preview */}
                 {selectedFiles.length > 0 && (
                   <div className="space-y-1">

@@ -86,6 +86,8 @@ public class SecurityConfig {
 
                         // User endpoints - protected by @PreAuthorize annotations
                         .requestMatchers("/api/v1/users/**").authenticated()
+                        .requestMatchers("/api/v1/chat/**").authenticated()
+                        .requestMatchers("/api/v1/bookings/**").authenticated()
 
                         // All other endpoints require authentication
                         .anyRequest().authenticated())

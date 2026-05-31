@@ -3,13 +3,12 @@ import authService from "@/services/auth.service";
 
 import { useState } from "react"
 import { useToast } from "@/hooks/use-toast"
+import { useRouter } from "next/navigation"
 import { AppLayout } from "@/components/templates/layout/app-layout"
 import { BrowseVehicles } from "@/components/renter/browse-vehicles"
 import { VehicleDetailPage } from "@/components/renter/vehicle-detail-page"
 import { MyBookings } from "@/components/renter/my-bookings"
 import { BookingForm } from "@/components/renter/booking-form"
-import { ChatInterface } from "@/components/chat/chat-interface"
-import { ChatsList } from "@/components/chat/chats-list"
 import { OwnerDashboard } from "@/components/owner/dashboard"
 import { MyVehicles } from "@/components/owner/my-vehicles"
 import { BookingRequests } from "@/components/owner/booking-requests"
@@ -51,6 +50,7 @@ export default function Home() {
   const [showProfileSidebar, setShowProfileSidebar] = useState(false)
   const [profileData, setProfileData] = useState<any>(null)
   const { toast } = useToast()
+  const router = useRouter()
 
   const handleLoginSuccess = async (email: string, password: string) => {
     try {
@@ -188,7 +188,7 @@ export default function Home() {
       userEmail={currentUser.email}
       userImage={currentUser.image}
       userId={currentUser.id}
-      onMessagesClick={() => setShowChatsList(true)}
+      onMessagesClick={() => router.push(`/${currentRole}/chat`)}
       onProfileClick={() => setShowProfileSidebar(true)}
     >
       <main className="min-h-screen bg-background">
@@ -307,28 +307,6 @@ export default function Home() {
           onSuccess={() => {
             setShowBookingForm(false)
           }}
-        />
-      )}
-
-      {showChatInterface && selectedVehicleId && (
-        <ChatInterface
-          vehicleId={selectedVehicleId.toString()}
-          currentUserId="renter-1"
-          onClose={() => {
-            setShowChatInterface(false)
-          }}
-        />
-      )}
-
-      {showChatsList && (
-        <ChatsList
-          currentUserId={currentRole === "renter" ? "renter-1" : "owner-1"}
-          onSelectChat={(chatId) => {
-            setSelectedChatId(chatId)
-            setShowChatsList(false)
-            setShowChatInterface(true)
-          }}
-          onClose={() => setShowChatsList(false)}
         />
       )}
       

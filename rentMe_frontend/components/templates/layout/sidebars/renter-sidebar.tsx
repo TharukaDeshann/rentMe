@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Grid3x3, ShoppingCart, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useUnreadCount } from "@/hooks/useUnreadCount";
 
 const LINKS = [
   { href: "/renter",          label: "Browse Vehicles", icon: Grid3x3 },
@@ -13,6 +14,7 @@ const LINKS = [
 
 export function RenterSidebar() {
   const pathname = usePathname();
+  const { unreadCount } = useUnreadCount();
 
   return (
     <aside className="w-60 bg-sidebar border-r border-sidebar-border hidden md:flex flex-col">
@@ -30,7 +32,12 @@ export function RenterSidebar() {
             className={cn("nav-link", pathname === href && "active")}
           >
             <Icon className="h-4 w-4 shrink-0" />
-            {label}
+            <span className="flex-1">{label}</span>
+            {label === "Messages" && unreadCount > 0 && (
+              <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground px-1.5 py-0.5">
+                {unreadCount}
+              </span>
+            )}
           </Link>
         ))}
       </nav>

@@ -20,6 +20,9 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import vehicleService from "@/services/vehicle.service";
 import { Vehicle } from "@/types/booking";
+import { useToast } from "@/hooks/use-toast";
+import { useRouter } from "next/navigation";
+import { createOrGetSession } from "@/services/chat.service";
 
 interface VehicleDetailPageProps {
   vehicleId: number;
@@ -38,6 +41,29 @@ export function VehicleDetailPage({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [chatLoading, setChatLoading] = useState(false);
+  const { toast } = useToast();
+  const router = useRouter();
+
+  const handleChatClick = async () => {
+    if (!vehicle || chatLoading) return;
+    setChatLoading(true);
+    try {
+      const response = await createOrGetSession({
+        targetUserId: vehicle.vehicleOwnerId,
+        vehicleId: vehicle.vehicleId,
+      });
+      router.push(`/renter/chat?session=${response.sessionId}`);
+    } catch (err: any) {
+      toast({
+        title: "Communication Gated",
+        description: err.message || "Failed to start conversation.",
+        variant: "destructive",
+      });
+    } finally {
+      setChatLoading(false);
+    }
+  };
 
   useEffect(() => {
     const fetch = async () => {
@@ -330,9 +356,14 @@ export function VehicleDetailPage({
               <Button
                 variant="outline"
                 className="w-full gap-2 bg-transparent"
-                onClick={onChat}
+                onClick={handleChatClick}
+                disabled={chatLoading}
               >
-                <MessageSquare className="h-4 w-4" />
+                {chatLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <MessageSquare className="h-4 w-4" />
+                )}
                 Chat with Owner
               </Button>
             </CardContent>

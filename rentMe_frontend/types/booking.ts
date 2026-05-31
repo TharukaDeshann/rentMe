@@ -17,7 +17,7 @@ export type VehicleType =
   | "MINIVAN"
   | "PICKUP";
 
-export const VEHICLE_TYPES: VehicleType[] = [
+  export const VEHICLE_TYPES: VehicleType[] = [
   "SEDAN",
   "SUV",
   "TRUCK",
@@ -38,8 +38,7 @@ export interface Vehicle {
   capacity: number;
   dailyPrice: number;
   description?: string;
-  pictures?: string[];
-  legalDocuments?: string;
+  pictures?: string;
   pickupLocation: string;
   latitude: number;
   longitude: number;
@@ -78,7 +77,7 @@ export interface Booking {
   vehicleModel: string;
   vehicleType: string;
   vehiclePickupLocation: string;
-  vehiclePictures?: string[];
+  vehiclePictures?: string;
   // Renter summary
   renterId: number;
   renterName: string;

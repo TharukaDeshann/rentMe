@@ -55,8 +55,18 @@ public class ChatService {
 
         User caller = userRepository.findById(callerId)
                 .orElseThrow(() -> new ChatSessionException("Caller not found"));
-        User target = userRepository.findById(req.getTargetUserId())
-                .orElseThrow(() -> new ChatSessionException("Target user not found"));
+        
+        User target = userRepository.findById(req.getTargetUserId()).orElse(null);
+        if (target == null) {
+            Optional<VehicleOwner> ownerOpt = vehicleOwnerRepository.findById(req.getTargetUserId());
+            if (ownerOpt.isPresent()) {
+                target = ownerOpt.get().getUser();
+            }
+        }
+        
+        if (target == null) {
+            throw new ChatSessionException("Target user not found");
+        }
 
         if (Boolean.FALSE.equals(target.getIsActive())) {
             throw new ChatSessionException("Target user is not active");
