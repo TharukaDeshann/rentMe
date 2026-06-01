@@ -8,6 +8,7 @@ import {
   Loader2,
   AlertCircle,
   X,
+  CheckCircle2,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +27,8 @@ import {
   cancelBookingAsRenter,
 } from "@/services/booking.service";
 import { Booking, BookingStatus } from "@/types/booking";
+import { ReviewModal } from "@/components/reviews/ReviewModal";
+import reviewService from "@/services/review.service";
 
 const STATUS_STYLES: Record<BookingStatus, string> = {
   PENDING: "bg-yellow-500/10 text-yellow-700 border-yellow-500/20",
@@ -45,6 +48,10 @@ export function MyBookings() {
   const [cancelReason, setCancelReason] = useState("");
   const [cancelLoading, setCancelLoading] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
+
+  // Review modal state
+  const [reviewingBooking, setReviewingBooking] = useState<Booking | null>(null);
+  const [reviewedBookingIds, setReviewedBookingIds] = useState<Record<number, boolean>>({});
 
   const fetchBookings = useCallback(async () => {
     try {
@@ -84,6 +91,31 @@ export function MyBookings() {
       setCancelLoading(false);
     }
   };
+
+  useEffect(() => {
+    const checkReviews = async () => {
+      const completedBookings = bookings.filter((b) => b.status === "COMPLETED");
+      const reviewedMap: Record<number, boolean> = {};
+
+      await Promise.all(
+        completedBookings.map(async (booking) => {
+          try {
+            const reviews = await reviewService.getReviewsByVehicle(booking.vehicleId);
+            const hasReview = reviews.some((r) => r.bookingId === booking.bookingId);
+            reviewedMap[booking.bookingId] = hasReview;
+          } catch (e) {
+            console.error("Failed to check review status for booking " + booking.bookingId, e);
+          }
+        })
+      );
+
+      setReviewedBookingIds((prev) => ({ ...prev, ...reviewedMap }));
+    };
+
+    if (bookings.length > 0) {
+      checkReviews();
+    }
+  }, [bookings]);
 
   const firstPicture = (pictures?: string[] | string) => {
     if (!pictures) return "/placeholder.jpg";
@@ -226,6 +258,23 @@ export function MyBookings() {
                           Cancel Request
                         </Button>
                       )}
+
+                      {booking.status === "COMPLETED" && (
+                        reviewedBookingIds[booking.bookingId] ? (
+                          <div className="flex items-center gap-1.5 text-sm text-green-600 font-semibold bg-green-500/10 px-3 py-1.5 rounded-full border border-green-500/20 select-none">
+                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                            Reviewed
+                          </div>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setReviewingBooking(booking)}
+                          >
+                            Leave a Review
+                          </Button>
+                        )
+                      )}
                     </div>
                   </div>
                 </div>
@@ -301,6 +350,21 @@ export function MyBookings() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Review Dialog */}
+      <ReviewModal
+        open={reviewingBooking !== null}
+        onOpenChange={(open) => !open && setReviewingBooking(null)}
+        booking={reviewingBooking}
+        onSuccess={() => {
+          if (reviewingBooking) {
+            setReviewedBookingIds((prev) => ({
+              ...prev,
+              [reviewingBooking.bookingId]: true,
+            }));
+          }
+        }}
+      />
     </div>
   );
 }

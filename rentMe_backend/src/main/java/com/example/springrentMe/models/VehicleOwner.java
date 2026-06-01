@@ -32,9 +32,17 @@ public class VehicleOwner {
     @Column(name = "verification_status", nullable = false)
     private VerificationStatus verificationStatus = VerificationStatus.NOT_SUBMITTED;
 
-    @Column(name = "average_rating", nullable = false)
+    @Column(name = "average_rating")
     private Double averageRating = 0.0;
 
-    @Column(name = "total_reviews", nullable = false)
+    @Column(name = "total_reviews")
     private Long totalReviews = 0L;
+
+    public Double getAverageRating() {
+        return averageRating == null ? 0.0 : averageRating;
+    }
+
+    public Long getTotalReviews() {
+        return totalReviews == null ? 0L : totalReviews;
+    }
 }

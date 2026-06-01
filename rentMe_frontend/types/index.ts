@@ -8,4 +8,5 @@ export * from "./auth";
 export * from "./booking";
 export * from "./document";
 export * from "./chat";
+export * from "./review";
 

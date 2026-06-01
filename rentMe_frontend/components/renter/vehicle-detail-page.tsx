@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   ArrowLeft,
   Users,
@@ -12,6 +12,7 @@ import {
   AlertCircle,
   ChevronLeft,
   ChevronRight,
+  Star,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,6 +24,9 @@ import { Vehicle } from "@/types/booking";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { createOrGetSession } from "@/services/chat.service";
+import { useVehicleReviews, useVehicleReviewSummary } from "@/hooks/useReviews";
+import { StarRatingDisplay } from "@/components/reviews/StarRatingDisplay";
+import { ReviewList } from "@/components/reviews/ReviewList";
 
 interface VehicleDetailPageProps {
   vehicleId: number;
@@ -45,6 +49,10 @@ export function VehicleDetailPage({
   const { toast } = useToast();
   const router = useRouter();
 
+  // Reviews integration hooks
+  const { reviews, loading: reviewsLoading, refetch: refetchReviews } = useVehicleReviews(vehicleId);
+  const { summary, loading: summaryLoading, refetch: refetchSummary } = useVehicleReviewSummary(vehicleId);
+
   const handleChatClick = async () => {
     if (!vehicle || chatLoading) return;
     setChatLoading(true);
@@ -65,21 +73,28 @@ export function VehicleDetailPage({
     }
   };
 
-  useEffect(() => {
-    const fetch = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const data = await vehicleService.getVehicleById(vehicleId);
-        setVehicle(data);
-      } catch (err: any) {
-        setError(err.message || "Failed to load vehicle details.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetch();
+  const fetchVehicleDetails = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await vehicleService.getVehicleById(vehicleId);
+      setVehicle(data);
+    } catch (err: any) {
+      setError(err.message || "Failed to load vehicle details.");
+    } finally {
+      setLoading(false);
+    }
   }, [vehicleId]);
+
+  useEffect(() => {
+    fetchVehicleDetails();
+  }, [fetchVehicleDetails]);
+
+  const handleReviewDeleted = () => {
+    refetchReviews();
+    refetchSummary();
+    fetchVehicleDetails();
+  };
 
   const firstPicture = (pictures?: string[] | string) => {
     if (!pictures) return "/placeholder.jpg";
@@ -145,11 +160,29 @@ export function VehicleDetailPage({
           <h1 className="text-3xl font-bold text-foreground">
             {vehicle.make} {vehicle.model}
           </h1>
-          <div className="mt-2 flex items-center gap-4 text-sm text-muted-foreground">
+          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
             <div className="flex items-center gap-1">
               <MapPin className="h-4 w-4" />
               {vehicle.pickupLocation}
             </div>
+            
+            {summary && summary.totalReviews > 0 ? (
+              <div className="flex items-center gap-1.5">
+                <StarRatingDisplay rating={summary.averageRating} size={15} />
+                <span className="font-semibold text-foreground text-xs leading-none mt-0.5">
+                  {summary.averageRating.toFixed(1)}
+                </span>
+                <span className="text-xs text-muted-foreground leading-none mt-0.5">
+                  ({summary.totalReviews} {summary.totalReviews === 1 ? "review" : "reviews"})
+                </span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <Star className="h-3.5 w-3.5 text-gray-300 fill-gray-300" />
+                No reviews yet
+              </div>
+            )}
+
             {!vehicle.isAvailable && (
               <Badge variant="destructive">Currently Unavailable</Badge>
             )}
@@ -290,6 +323,28 @@ export function VehicleDetailPage({
                   </Badge>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Reviews List Card */}
+          <Card>
+            <CardHeader className="pb-4">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-xl">Renter Reviews</CardTitle>
+                {summary && summary.totalReviews > 0 && (
+                  <Badge variant="secondary" className="font-semibold gap-1">
+                    <Star className="h-3.5 w-3.5 text-amber-400 fill-amber-400" />
+                    {summary.averageRating.toFixed(1)} / 5.0 ({summary.totalReviews} reviews)
+                  </Badge>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent className="pt-2">
+              <ReviewList
+                reviews={reviews}
+                loading={reviewsLoading || summaryLoading}
+                onReviewDeleted={handleReviewDeleted}
+              />
             </CardContent>
           </Card>
         </div>
