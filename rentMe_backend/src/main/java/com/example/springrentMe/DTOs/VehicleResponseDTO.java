@@ -31,6 +31,9 @@ public class VehicleResponseDTO {
     private Boolean isAvailable;
     private Boolean isListed;
 
+    private Double averageRating;
+    private Long totalReviews;
+
     // Owner summary (avoid exposing full owner object)
     private Long vehicleOwnerId;
     private String ownerName;

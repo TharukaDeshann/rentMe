@@ -31,4 +31,10 @@ public class VehicleOwner {
     @Enumerated(EnumType.STRING)
     @Column(name = "verification_status", nullable = false)
     private VerificationStatus verificationStatus = VerificationStatus.NOT_SUBMITTED;
+
+    @Column(name = "average_rating", nullable = false)
+    private Double averageRating = 0.0;
+
+    @Column(name = "total_reviews", nullable = false)
+    private Long totalReviews = 0L;
 }

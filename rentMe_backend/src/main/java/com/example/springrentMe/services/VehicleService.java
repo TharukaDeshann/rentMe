@@ -321,6 +321,8 @@ public class VehicleService {
         dto.setLongitude(vehicle.getLongitude());
         dto.setIsAvailable(vehicle.getIsAvailable());
         dto.setIsListed(vehicle.getIsListed());
+        dto.setAverageRating(vehicle.getAverageRating());
+        dto.setTotalReviews(vehicle.getTotalReviews());
         dto.setCreatedAt(vehicle.getCreatedAt());
         dto.setUpdatedAt(vehicle.getUpdatedAt());
 

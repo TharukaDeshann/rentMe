@@ -95,6 +95,12 @@ public class Vehicle {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    @Column(name = "average_rating", nullable = false)
+    private Double averageRating = 0.0;
+
+    @Column(name = "total_reviews", nullable = false)
+    private Long totalReviews = 0L;
+
     // One vehicle can have many bookings (history), but only one active at a time
     @OneToMany(mappedBy = "vehicle", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Booking> bookings;
