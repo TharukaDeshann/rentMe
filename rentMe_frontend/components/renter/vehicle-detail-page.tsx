@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { formatLKR } from "@/utils/currency";
 import {
   ArrowLeft,
   Users,
@@ -308,7 +309,7 @@ export function VehicleDetailPage({
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm text-muted-foreground">Daily Price</p>
-                  <p className="font-semibold">${vehicle.dailyPrice}/day</p>
+                  <p className="font-semibold">{formatLKR(vehicle.dailyPrice)}/day</p>
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm text-muted-foreground">Availability</p>
@@ -357,7 +358,7 @@ export function VehicleDetailPage({
               <div className="space-y-4">
                 <div className="flex items-baseline gap-2">
                   <span className="text-3xl font-bold">
-                    ${vehicle.dailyPrice}
+                    {formatLKR(vehicle.dailyPrice)}
                   </span>
                   <span className="text-muted-foreground">/ day</span>
                 </div>

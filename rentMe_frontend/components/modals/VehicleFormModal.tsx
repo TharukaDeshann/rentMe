@@ -327,13 +327,13 @@ export function VehicleFormModal({
 
             {/* Daily Price */}
             <div className="grid grid-cols-3 items-center gap-4">
-              <Label className="text-right text-sm text-muted-foreground">Daily Price ($) *</Label>
+              <Label className="text-right text-sm text-muted-foreground">Daily Price (LKR) *</Label>
               <Input
                 type="number"
                 step="0.01"
                 value={formData.dailyPrice}
                 onChange={(e) => handleInputChange("dailyPrice", e.target.value)}
-                placeholder="49.99"
+                placeholder="4999"
                 className="col-span-2 h-9"
               />
             </div>

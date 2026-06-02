@@ -5,12 +5,13 @@ import {
   Check,
   X,
   Calendar,
-  DollarSign,
+  Tag,
   Loader2,
   AlertCircle,
   MapPin,
   Clock,
 } from "lucide-react";
+import { formatLKR } from "@/utils/currency";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -213,8 +214,8 @@ export function BookingRequests() {
                         </span>
                       </div>
                       <div className="flex items-center gap-2 text-sm font-semibold text-primary">
-                        <DollarSign className="h-4 w-4" />$
-                        {Number(booking.totalAmount).toFixed(2)}
+                        <Tag className="h-4 w-4 text-muted-foreground" />
+                        {formatLKR(booking.totalAmount)}
                       </div>
                       {booking.notes && (
                         <p className="text-xs text-muted-foreground italic">
@@ -305,7 +306,7 @@ export function BookingRequests() {
                       {/* Price & Status */}
                       <div className="text-right shrink-0">
                         <p className="font-bold">
-                          ${Number(booking.totalAmount).toFixed(2)}
+                          {formatLKR(booking.totalAmount)}
                         </p>
                         <Badge className={`mt-1 ${STATUS_STYLES[booking.status]}`}>
                           {booking.status}

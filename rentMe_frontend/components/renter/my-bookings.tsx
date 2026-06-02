@@ -4,12 +4,13 @@ import { useState, useEffect, useCallback } from "react";
 import {
   Calendar,
   MapPin,
-  DollarSign,
+  Tag,
   Loader2,
   AlertCircle,
   X,
   CheckCircle2,
 } from "lucide-react";
+import { formatLKR } from "@/utils/currency";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -237,9 +238,9 @@ export function MyBookings() {
 
                     <div className="flex items-center justify-between pt-4 border-t border-border">
                       <div className="flex items-center gap-2">
-                        <DollarSign className="h-5 w-5 text-muted-foreground" />
+                        <Tag className="h-5 w-5 text-muted-foreground" />
                         <span className="text-2xl font-bold">
-                          ${Number(booking.totalAmount).toFixed(2)}
+                          {formatLKR(booking.totalAmount)}
                         </span>
                       </div>
 

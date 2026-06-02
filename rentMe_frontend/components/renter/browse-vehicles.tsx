@@ -5,13 +5,14 @@ import {
   Search,
   MapPin,
   Users,
-  DollarSign,
+  Tag,
   Star,
   Calendar,
   MapPinIcon,
   Loader2,
   AlertCircle,
 } from "lucide-react";
+import { formatLKR } from "@/utils/currency";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -33,7 +34,7 @@ export function BrowseVehicles({ onViewDetails }: BrowseVehiclesProps) {
   // Filter state
   const [searchLocation, setSearchLocation] = useState("");
   const [selectedType, setSelectedType] = useState<VehicleType | "">("");
-  const [priceRange, setPriceRange] = useState(200);
+  const [priceRange, setPriceRange] = useState(50000);
   const [view, setView] = useState<"list" | "map">("list");
 
   const fetchVehicles = useCallback(async () => {
@@ -42,7 +43,7 @@ export function BrowseVehicles({ onViewDetails }: BrowseVehiclesProps) {
       setError(null);
       const data = await getAvailableVehicles(
         selectedType || undefined,
-        priceRange < 200 ? priceRange : undefined
+        priceRange < 50000 ? priceRange : undefined
       );
       setVehicles(data);
     } catch (err: any) {
@@ -135,14 +136,14 @@ export function BrowseVehicles({ onViewDetails }: BrowseVehiclesProps) {
             <div className="flex items-center justify-between">
               <label className="text-sm font-medium">Daily Price Range</label>
               <span className="text-sm font-semibold text-primary">
-                {priceRange >= 200 ? "Any" : `$${priceRange}`}
+                {priceRange >= 50000 ? "Any" : formatLKR(priceRange)}
               </span>
             </div>
             <input
               type="range"
-              min="0"
-              max="200"
-              step="5"
+              min="1000"
+              max="50000"
+              step="1000"
               value={priceRange}
               onChange={(e) => setPriceRange(Number(e.target.value))}
               className="w-full"
@@ -217,8 +218,8 @@ export function BrowseVehicles({ onViewDetails }: BrowseVehiclesProps) {
                       <span>{vehicle.capacity} Seats</span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <DollarSign className="h-4 w-4" />
-                      <span>${vehicle.dailyPrice} / day</span>
+                      <Tag className="h-4 w-4 text-muted-foreground" />
+                      <span>{formatLKR(vehicle.dailyPrice)} / day</span>
                     </div>
                   </div>
 
@@ -271,8 +272,8 @@ export function BrowseVehicles({ onViewDetails }: BrowseVehiclesProps) {
                         onClick={() => onViewDetails(vehicle.vehicleId)}
                         className="rounded-lg border border-border bg-card p-2 text-xs text-foreground hover:bg-muted text-left"
                       >
-                        {vehicle.make} {vehicle.model} • $
-                        {vehicle.dailyPrice}/day •{" "}
+                        {vehicle.make} {vehicle.model} •{" "}
+                        {formatLKR(vehicle.dailyPrice)}/day •{" "}
                         <span className="text-muted-foreground">
                           {vehicle.pickupLocation}
                         </span>

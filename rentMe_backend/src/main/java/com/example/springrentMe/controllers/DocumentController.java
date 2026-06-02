@@ -128,7 +128,6 @@ public class DocumentController {
      * (enforcement is currently trust-based — the URL itself is not guessable
      * because it includes a UUID prefix).
      */
-    @PreAuthorize("isAuthenticated()")
     @GetMapping("/api/v1/files/**")
     public ResponseEntity<Resource> serveFile(
             @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authHeader,
@@ -137,6 +136,23 @@ public class DocumentController {
             // Extract the path after /api/v1/files/
             String requestURI = request.getRequestURI();
             String filePath   = requestURI.substring(requestURI.indexOf("/api/v1/files/") + "/api/v1/files/".length());
+
+            // Check if this is a public vehicle picture
+            java.util.Optional<com.example.springrentMe.models.Document> docOpt = documentService.getDocumentByFileUrl(filePath);
+            boolean isPublicVehiclePicture = false;
+            if (docOpt.isPresent()) {
+                if (docOpt.get().getDocumentType() == com.example.springrentMe.models.DocumentType.VEHICLE_PICTURE) {
+                    isPublicVehiclePicture = true;
+                }
+            }
+
+            if (!isPublicVehiclePicture) {
+                // Sensitive document: require active authentication
+                org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+                if (auth == null || !auth.isAuthenticated() || auth instanceof org.springframework.security.authentication.AnonymousAuthenticationToken) {
+                    return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+                }
+            }
 
             Path baseDir  = Paths.get(localBaseDir).toAbsolutePath().normalize();
             Path resolved = baseDir.resolve(filePath).normalize();

@@ -6,7 +6,8 @@ import {
   Tooltip, ResponsiveContainer, Legend,
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Car, CheckCircle2, DollarSign, Star, TrendingUp } from "lucide-react";
+import { Car, CheckCircle2, Tag, Star, TrendingUp } from "lucide-react";
+import { formatLKR } from "@/utils/currency";
 import { getMyVehiclesAsOwner } from "@/services/vehicle.service";
 import { getMyBookingsAsOwner } from "@/services/booking.service";
 import { useOwnerRating } from "@/hooks/useReviews";
@@ -78,8 +79,8 @@ export function OwnerDashboard() {
     },
     {
       label: "Total Earnings",
-      value: statsLoading ? "..." : `$${totalEarnings.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-      icon: DollarSign,
+      value: statsLoading ? "..." : formatLKR(totalEarnings),
+      icon: Tag,
       color: "text-emerald-600",
       bg: "bg-emerald-50",
       trend: "From completed rentals",
@@ -173,7 +174,7 @@ export function OwnerDashboard() {
                 wrapperStyle={{ fontSize: "12px", paddingTop: "12px" }}
               />
               <Bar dataKey="bookings" fill="var(--color-primary)" radius={[4, 4, 0, 0]} name="Bookings" />
-              <Bar dataKey="earnings" fill="var(--color-secondary)" radius={[4, 4, 0, 0]} name="Earnings ($)" />
+              <Bar dataKey="earnings" fill="var(--color-secondary)" radius={[4, 4, 0, 0]} name="Earnings (LKR)" />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>

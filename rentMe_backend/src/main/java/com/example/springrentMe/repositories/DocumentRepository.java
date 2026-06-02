@@ -18,4 +18,7 @@ public interface DocumentRepository extends JpaRepository<Document, Long> {
 
     // Documents by type for a vehicle (e.g. only VEHICLE_REGISTRATION)
     List<Document> findByVehicle_VehicleIdAndDocumentType(Long vehicleId, DocumentType documentType);
+
+    // Find document by file URL path
+    java.util.Optional<Document> findByFileUrl(String fileUrl);
 }

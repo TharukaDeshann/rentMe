@@ -160,6 +160,11 @@ public class DocumentService {
                 .stream().map(this::convertToDTO).collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
+    public java.util.Optional<Document> getDocumentByFileUrl(String fileUrl) {
+        return documentRepository.findByFileUrl(fileUrl);
+    }
+
     // ─────────────────────────────────────────────────────────────────────────
     // Delete
     // ─────────────────────────────────────────────────────────────────────────

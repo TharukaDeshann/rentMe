@@ -40,6 +40,9 @@ public class BookingService {
     @Autowired
     private VehicleService vehicleService;
 
+    @Autowired
+    private DocumentService documentService;
+
     // ─────────────────────────────────────────────────────────────────────────
     // CREATE BOOKING (Renter action)
     // ─────────────────────────────────────────────────────────────────────────
@@ -395,7 +398,7 @@ public class BookingService {
             List<String> picUrls = vehicle.getDocuments() != null
                 ? vehicle.getDocuments().stream()
                     .filter(d -> d.getDocumentType() == com.example.springrentMe.models.DocumentType.VEHICLE_PICTURE)
-                    .map(com.example.springrentMe.models.Document::getFileUrl)
+                    .map(d -> documentService.convertToDTO(d).getFileUrl())
                     .collect(Collectors.toList())
                 : new java.util.ArrayList<>();
             dto.setVehiclePictures(picUrls);

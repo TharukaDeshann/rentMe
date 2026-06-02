@@ -6,7 +6,7 @@ import {
   Legend, ResponsiveContainer,
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Car, DollarSign, Star } from "lucide-react";
+import { Users, Car, Tag, Star } from "lucide-react";
 
 const userGrowthData = [
   { month: "Jan", renters: 120, owners: 45 },
@@ -27,7 +27,7 @@ const PIE_COLORS = ["var(--color-secondary)", "var(--color-chart-3)", "var(--col
 const STATS = [
   { label: "Total Users",    value: "630", icon: Users,       color: "text-primary",   bg: "bg-primary/8" },
   { label: "Total Vehicles", value: "245", icon: Car,         color: "text-secondary", bg: "bg-secondary/8" },
-  { label: "Total Revenue",  value: "$58.5K", icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-50" },
+  { label: "Total Revenue",  value: "Rs. 58.5K", icon: Tag, color: "text-emerald-600", bg: "bg-emerald-50" },
   { label: "Avg Rating",     value: "4.7★",   icon: Star,       color: "text-amber-500",   bg: "bg-amber-50" },
 ];
 

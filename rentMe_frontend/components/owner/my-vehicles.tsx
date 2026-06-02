@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { formatLKR } from "@/utils/currency";
 import { Plus, Edit2, Trash2, Eye, EyeOff, Loader2, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -199,7 +200,7 @@ export function MyVehicles() {
                     </div>
                     <div className="text-sm">
                       <p className="text-xs text-muted-foreground mb-0.5">Daily Rate</p>
-                      <p className="font-semibold text-foreground">${vehicle.dailyPrice}</p>
+                      <p className="font-semibold text-foreground">{formatLKR(vehicle.dailyPrice)}</p>
                     </div>
                     <div className="text-sm">
                       <p className="text-xs text-muted-foreground mb-0.5">Status</p>
