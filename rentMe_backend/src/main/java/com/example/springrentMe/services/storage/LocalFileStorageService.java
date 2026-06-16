@@ -57,7 +57,11 @@ public class LocalFileStorageService implements FileStorageService {
             throw new RuntimeException("Filename contains invalid path sequence: " + originalName);
         }
 
-        String uniqueFilename = UUID.randomUUID() + "_" + originalName;
+        // Sanitize: replace spaces and URL-unsafe characters with underscores
+        // to ensure the stored path is always a valid URL segment.
+        String safeName = originalName.replaceAll("[\\s]+", "_");
+
+        String uniqueFilename = UUID.randomUUID() + "_" + safeName;
 
         try {
             Path targetDir = baseDir.resolve(folder).normalize();

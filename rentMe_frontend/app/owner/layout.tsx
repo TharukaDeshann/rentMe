@@ -44,7 +44,7 @@ export default function OwnerLayout({ children }: { children: React.ReactNode })
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
-          <div className="h-10 w-10 rounded-full border-2 border-secondary border-t-transparent animate-spin" />
+          <div className="h-10 w-10 rounded-full border-2 border-primary border-t-transparent animate-spin" />
           <p className="text-sm text-muted-foreground">Loading…</p>
         </div>
       </div>
@@ -59,15 +59,15 @@ export default function OwnerLayout({ children }: { children: React.ReactNode })
       <aside className="hidden md:flex flex-col w-60 shrink-0 border-r border-sidebar-border bg-sidebar">
         {/* Logo */}
         <div className="flex items-center gap-2.5 h-16 px-5 border-b border-sidebar-border shrink-0">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary shadow-sm">
-            <Car className="h-4 w-4 text-secondary-foreground" />
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary shadow-sm">
+            <Car className="h-4 w-4 text-primary-foreground" />
           </div>
           <span className="text-base font-bold tracking-tight text-sidebar-foreground">rentMe</span>
         </div>
 
         {/* Role badge */}
         <div className="px-5 py-3 border-b border-sidebar-border">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary/10 px-2.5 py-1 text-xs font-semibold text-secondary">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
             Vehicle Owner
           </span>
         </div>
@@ -85,7 +85,7 @@ export default function OwnerLayout({ children }: { children: React.ReactNode })
                 <Icon className="h-4 w-4 shrink-0" />
                 <span className="flex-1">{label}</span>
                 {label === 'Messages' && unreadCount > 0 && (
-                  <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-secondary text-[10px] font-bold text-secondary-foreground px-1.5 py-0.5">
+                  <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground px-1.5 py-0.5">
                     {unreadCount}
                   </span>
                 )}
@@ -116,8 +116,8 @@ export default function OwnerLayout({ children }: { children: React.ReactNode })
         <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b border-border bg-card/90 backdrop-blur-md px-4 sm:px-6 shrink-0">
           {/* Mobile logo */}
           <div className="flex items-center gap-2 md:hidden">
-            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-secondary">
-              <Car className="h-3.5 w-3.5 text-secondary-foreground" />
+            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary">
+              <Car className="h-3.5 w-3.5 text-primary-foreground" />
             </div>
             <span className="font-bold text-foreground">rentMe</span>
           </div>
@@ -133,7 +133,7 @@ export default function OwnerLayout({ children }: { children: React.ReactNode })
                 <Icon className="h-4 w-4" />
                 <span className="hidden sm:inline">{label}</span>
                 {label === 'Messages' && unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-secondary text-[9px] font-bold text-secondary-foreground">
+                  <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-primary-foreground">
                     {unreadCount}
                   </span>
                 )}
@@ -146,8 +146,8 @@ export default function OwnerLayout({ children }: { children: React.ReactNode })
             <span className="hidden sm:block text-sm text-muted-foreground truncate max-w-[180px]">
               {user.email}
             </span>
-            <Avatar className="h-8 w-8 ring-2 ring-secondary/20">
-              <AvatarFallback className="text-xs font-semibold bg-secondary text-secondary-foreground">
+            <Avatar className="h-8 w-8 ring-2 ring-primary/20">
+              <AvatarFallback className="text-xs font-semibold bg-primary text-primary-foreground">
                 {initials}
               </AvatarFallback>
             </Avatar>

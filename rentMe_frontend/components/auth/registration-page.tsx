@@ -8,18 +8,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Car, Mail, Lock, Phone, User, Calendar, ArrowLeft, ArrowRight, Eye, EyeOff, CheckCircle2 } from "lucide-react";
 
+import { cn } from "@/lib/utils";
+
 interface RegistrationPageProps {
   onRegistrationSuccess: (formData: {
     fullName: string;
     email: string;
     phoneNumber: string;
     password: string;
+    role: "RENTER" | "VEHICLE_OWNER";
     dateOfBirth?: string;
   }) => Promise<void>;
   onSwitchToLogin: () => void;
 }
 
-const STEPS = ["Personal Info", "Account Setup"];
+const STEPS = ["Choose Role", "Personal Info", "Account Setup"];
 
 export function RegistrationPage({ onRegistrationSuccess, onSwitchToLogin }: RegistrationPageProps) {
   const [step, setStep] = useState(1);
@@ -32,15 +35,24 @@ export function RegistrationPage({ onRegistrationSuccess, onSwitchToLogin }: Reg
     register,
     handleSubmit,
     trigger,
+    setValue,
+    watch,
     formState: { errors },
   } = useForm<RegistrationFormData>({
     resolver: zodResolver(registrationSchema),
     mode: "onChange",
   });
 
+  const selectedRole = watch("role");
+
   const handleNext = async () => {
-    const valid = await trigger(["fullName", "email", "phoneNumber"]);
-    if (valid) setStep(2);
+    if (step === 1) {
+      const valid = await trigger(["role"]);
+      if (valid) setStep(2);
+    } else if (step === 2) {
+      const valid = await trigger(["fullName", "email", "phoneNumber"]);
+      if (valid) setStep(3);
+    }
   };
 
   const onSubmit = async (data: RegistrationFormData) => {
@@ -52,6 +64,7 @@ export function RegistrationPage({ onRegistrationSuccess, onSwitchToLogin }: Reg
         email: data.email,
         phoneNumber: data.phoneNumber,
         password: data.password,
+        role: data.role as any,
         dateOfBirth: data.dateOfBirth,
       });
     } catch (err: any) {
@@ -131,8 +144,84 @@ export function RegistrationPage({ onRegistrationSuccess, onSwitchToLogin }: Reg
           )}
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            {/* ── Step 1 ── */}
+            {/* Registered hidden field */}
+            <input type="hidden" {...register("role")} />
+
+            {/* ── Step 1: Choose Role ── */}
             {step === 1 && (
+              <>
+                <div className="space-y-3.5">
+                  <label className="text-sm font-medium text-foreground">I want to register as a:</label>
+                  
+                  <div className="grid grid-cols-1 gap-4 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setValue("role", "RENTER", { shouldValidate: true })}
+                      className={cn(
+                        "flex flex-col items-start gap-4 p-5 rounded-2xl border-2 text-left transition-all duration-300 hover:scale-[1.02] shadow-sm",
+                        selectedRole === "RENTER"
+                          ? "border-primary bg-primary/5 shadow-md shadow-primary/5 ring-1 ring-primary"
+                          : "border-border bg-card hover:border-muted-foreground/30"
+                      )}
+                    >
+                      <div className={cn(
+                        "flex h-10 w-10 items-center justify-center rounded-xl transition-colors",
+                        selectedRole === "RENTER"
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted text-muted-foreground"
+                      )}>
+                        <User className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-foreground">Renter</h3>
+                        <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                          Browse, book, and drive verified vehicles on the platform.
+                        </p>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setValue("role", "VEHICLE_OWNER", { shouldValidate: true })}
+                      className={cn(
+                        "flex flex-col items-start gap-4 p-5 rounded-2xl border-2 text-left transition-all duration-300 hover:scale-[1.02] shadow-sm",
+                        selectedRole === "VEHICLE_OWNER"
+                          ? "border-primary bg-primary/5 shadow-md shadow-primary/5 ring-1 ring-primary"
+                          : "border-border bg-card hover:border-muted-foreground/30"
+                      )}
+                    >
+                      <div className={cn(
+                        "flex h-10 w-10 items-center justify-center rounded-xl transition-colors",
+                        selectedRole === "VEHICLE_OWNER"
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted text-muted-foreground"
+                      )}>
+                        <Car className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-foreground">Vehicle Owner</h3>
+                        <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                          List your vehicles, manage rentals, and start earning today.
+                        </p>
+                      </div>
+                    </button>
+                  </div>
+                  {errors.role && <p className="text-xs text-destructive mt-1">{errors.role.message}</p>}
+                </div>
+
+                <Button
+                  type="button"
+                  onClick={handleNext}
+                  className="w-full h-11 gap-2 font-semibold mt-2"
+                  disabled={!selectedRole}
+                >
+                  Continue <ArrowRight className="h-4 w-4" />
+                </Button>
+              </>
+            )}
+
+            {/* ── Step 2: Personal Info ── */}
+            {step === 2 && (
               <>
                 {/* Full name */}
                 <div className="space-y-1.5">
@@ -164,14 +253,24 @@ export function RegistrationPage({ onRegistrationSuccess, onSwitchToLogin }: Reg
                   {errors.phoneNumber && <p className="text-xs text-destructive">{errors.phoneNumber.message}</p>}
                 </div>
 
-                <Button type="button" onClick={handleNext} className="w-full h-11 gap-2 font-semibold">
-                  Continue <ArrowRight className="h-4 w-4" />
-                </Button>
+                <div className="flex gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setStep(1)}
+                    className="flex-1 h-11 gap-2"
+                  >
+                    <ArrowLeft className="h-4 w-4" /> Back
+                  </Button>
+                  <Button type="button" onClick={handleNext} className="flex-1 h-11 gap-2 font-semibold">
+                    Continue <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </div>
               </>
             )}
 
-            {/* ── Step 2 ── */}
-            {step === 2 && (
+            {/* ── Step 3: Account Setup ── */}
+            {step === 3 && (
               <>
                 {/* Date of birth */}
                 <div className="space-y-1.5">
@@ -236,7 +335,7 @@ export function RegistrationPage({ onRegistrationSuccess, onSwitchToLogin }: Reg
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => setStep(1)}
+                    onClick={() => setStep(2)}
                     className="flex-1 h-11 gap-2"
                     disabled={isLoading}
                   >

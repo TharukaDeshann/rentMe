@@ -57,7 +57,7 @@ public class VerificationController {
      *
      * Requires: VEHICLE_OWNER role
      */
-    @PreAuthorize("hasRole('VEHICLE_OWNER')")
+    @PreAuthorize("hasAnyRole('VEHICLE_OWNER', 'RENTER')")
     @PostMapping(
         value  = "/api/v1/owner/verification/request",
         consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE
@@ -82,14 +82,14 @@ public class VerificationController {
     // ─────────────────────────────────────────────────────────────────────────
 
     /** GET /api/v1/owner/verification/history */
-    @PreAuthorize("hasRole('VEHICLE_OWNER')")
+    @PreAuthorize("hasAnyRole('VEHICLE_OWNER', 'RENTER')")
     @GetMapping("/api/v1/owner/verification/history")
     public ResponseEntity<List<VerificationRequestResponseDTO>> getMyHistory() {
         return ResponseEntity.ok(verificationService.getMyVerificationHistory());
     }
 
     /** GET /api/v1/owner/verification/latest */
-    @PreAuthorize("hasRole('VEHICLE_OWNER')")
+    @PreAuthorize("hasAnyRole('VEHICLE_OWNER', 'RENTER')")
     @GetMapping("/api/v1/owner/verification/latest")
     public ResponseEntity<?> getMyLatestRequest() {
         try {
@@ -113,7 +113,7 @@ public class VerificationController {
      *
      * Only PENDING requests accept new documents.
      */
-    @PreAuthorize("hasRole('VEHICLE_OWNER')")
+    @PreAuthorize("hasAnyRole('VEHICLE_OWNER', 'RENTER')")
     @PostMapping(
         value  = "/api/v1/owner/verification/{requestId}/documents",
         consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE

@@ -112,6 +112,36 @@ export const updateBookingStatusAsOwner = async (
   }
 };
 
+/**
+ * GET /admin/bookings — list all bookings for admin
+ */
+export const getAllBookingsAdmin = async (): Promise<Booking[]> => {
+  try {
+    const response = await apiClient.get<Booking[]>("/admin/bookings");
+    return response.data;
+  } catch (error) {
+    throw new Error(getErrorMessage(error));
+  }
+};
+
+/**
+ * PATCH /admin/bookings/:id/status — update booking status or cancel by admin
+ */
+export const adminUpdateBookingStatus = async (
+  bookingId: number | string,
+  data: any
+): Promise<Booking> => {
+  try {
+    const response = await apiClient.patch<Booking>(
+      `/admin/bookings/${bookingId}/status`,
+      data
+    );
+    return response.data;
+  } catch (error) {
+    throw new Error(getErrorMessage(error));
+  }
+};
+
 const bookingService = {
   createBooking,
   getMyBookingsAsRenter,
@@ -120,6 +150,8 @@ const bookingService = {
   getMyBookingsAsOwner,
   getPendingBookingRequests,
   updateBookingStatusAsOwner,
+  getAllBookingsAdmin,
+  adminUpdateBookingStatus,
 };
 
 export default bookingService;

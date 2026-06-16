@@ -6,9 +6,6 @@ import {
   MapPin,
   Users,
   Tag,
-  Star,
-  Calendar,
-  MapPinIcon,
   Loader2,
   AlertCircle,
 } from "lucide-react";
@@ -20,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { getAvailableVehicles } from "@/services/vehicle.service";
 import { Vehicle, VehicleType, VEHICLE_TYPES } from "@/types/booking";
+import { VehicleMapView } from "@/components/renter/vehicle-map-view";
 
 interface BrowseVehiclesProps {
   onViewDetails: (vehicleId: number) => void;
@@ -256,35 +254,10 @@ export function BrowseVehicles({ onViewDetails }: BrowseVehiclesProps) {
 
       {/* Map View */}
       {!loading && view === "map" && (
-        <Card className="border-0 shadow-sm">
-          <CardContent className="pt-6">
-            <div className="relative h-96 w-full rounded-lg bg-gradient-to-br from-primary/10 to-secondary/10">
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="space-y-2 text-center">
-                  <MapPinIcon className="mx-auto h-12 w-12 text-primary/50" />
-                  <p className="text-sm text-muted-foreground">
-                    {filteredVehicles.length} vehicles available in the area
-                  </p>
-                  <div className="flex flex-col gap-2">
-                    {filteredVehicles.slice(0, 3).map((vehicle) => (
-                      <button
-                        key={vehicle.vehicleId}
-                        onClick={() => onViewDetails(vehicle.vehicleId)}
-                        className="rounded-lg border border-border bg-card p-2 text-xs text-foreground hover:bg-muted text-left"
-                      >
-                        {vehicle.make} {vehicle.model} •{" "}
-                        {formatLKR(vehicle.dailyPrice)}/day •{" "}
-                        <span className="text-muted-foreground">
-                          {vehicle.pickupLocation}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <VehicleMapView
+          vehicles={filteredVehicles}
+          onViewDetails={onViewDetails}
+        />
       )}
     </div>
   );

@@ -161,6 +161,23 @@ public class BookingController {
         return ResponseEntity.ok(bookingService.getAllBookings());
     }
 
+    /**
+     * PATCH /api/v1/admin/bookings/{bookingId}/status
+     * Admin cancels or changes status of any booking.
+     */
+    @PreAuthorize("hasRole('ADMIN')")
+    @PatchMapping("/admin/bookings/{bookingId}/status")
+    public ResponseEntity<?> adminUpdateBookingStatus(
+            @PathVariable Long bookingId,
+            @Valid @RequestBody BookingStatusUpdateDTO request) {
+        try {
+            BookingResponseDTO booking = bookingService.adminUpdateBookingStatus(bookingId, request);
+            return ResponseEntity.ok(booking);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(buildError(e.getMessage()));
+        }
+    }
+
     // ─────────────────────────────────────────────────────────────────────────
     // HELPER
     // ─────────────────────────────────────────────────────────────────────────

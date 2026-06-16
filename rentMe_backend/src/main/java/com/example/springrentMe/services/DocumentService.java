@@ -17,6 +17,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -227,11 +229,23 @@ public class DocumentService {
 
     /**
      * Build the serve URL for local-storage files.
+     * Each path segment is URL-encoded so that filenames containing spaces or
+     * special characters produce a valid, browser-loadable URL.
      * Cloud files already carry a full URL from the provider.
      */
     private String buildServeUrl(Document doc) {
         if ("local".equals(doc.getStorageProvider())) {
-            return serverBaseUrl + "/api/v1/files/" + doc.getFileUrl();
+            // doc.getFileUrl() is a relative path like "vehicles/16/docs/bmw m3.jpg"
+            // Split on "/" and encode each segment individually, then rejoin.
+            String[] parts = doc.getFileUrl().split("/");
+            StringBuilder encoded = new StringBuilder();
+            for (int i = 0; i < parts.length; i++) {
+                if (i > 0) encoded.append("/");
+                // URLEncoder uses "+" for spaces; replace with "%20" for URL path segments
+                encoded.append(URLEncoder.encode(parts[i], StandardCharsets.UTF_8)
+                        .replace("+", "%20"));
+            }
+            return serverBaseUrl + "/api/v1/files/" + encoded;
         }
         // Cloud: the stored value is already a full URL
         return doc.getFileUrl();

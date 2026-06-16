@@ -15,6 +15,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.net.MalformedURLException;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
@@ -133,9 +135,12 @@ public class DocumentController {
             @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authHeader,
             jakarta.servlet.http.HttpServletRequest request) {
         try {
-            // Extract the path after /api/v1/files/
+            // Extract the path after /api/v1/files/ and URL-decode it so that
+            // percent-encoded characters (e.g. %20 for spaces) are resolved to
+            // their raw form before DB lookup and filesystem resolution.
             String requestURI = request.getRequestURI();
-            String filePath   = requestURI.substring(requestURI.indexOf("/api/v1/files/") + "/api/v1/files/".length());
+            String encodedPath = requestURI.substring(requestURI.indexOf("/api/v1/files/") + "/api/v1/files/".length());
+            String filePath    = URLDecoder.decode(encodedPath, StandardCharsets.UTF_8);
 
             // Check if this is a public vehicle picture
             java.util.Optional<com.example.springrentMe.models.Document> docOpt = documentService.getDocumentByFileUrl(filePath);

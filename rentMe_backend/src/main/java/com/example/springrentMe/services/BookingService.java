@@ -368,6 +368,38 @@ public class BookingService {
     }
 
     /**
+     * Admin updates status/cancels any booking.
+     */
+    @Transactional
+    public BookingResponseDTO adminUpdateBookingStatus(Long bookingId, BookingStatusUpdateDTO request) {
+        Booking booking = findBookingOrThrow(bookingId);
+        BookingStatus oldStatus = booking.getStatus();
+        BookingStatus newStatus = request.getNewStatus();
+
+        if (newStatus == BookingStatus.CANCELLED) {
+            booking.setStatus(BookingStatus.CANCELLED);
+            booking.setCancellationReason(
+                    request.getCancellationReason() != null
+                            ? request.getCancellationReason()
+                            : "Cancelled by Administrator");
+            // Restore vehicle availability if it was active
+            if (oldStatus == BookingStatus.APPROVED || oldStatus == BookingStatus.ONGOING) {
+                vehicleService.setAvailability(booking.getVehicle().getVehicleId(), true);
+            }
+        } else {
+            booking.setStatus(newStatus);
+            if (newStatus == BookingStatus.APPROVED) {
+                vehicleService.setAvailability(booking.getVehicle().getVehicleId(), false);
+            } else if (newStatus == BookingStatus.COMPLETED) {
+                vehicleService.setAvailability(booking.getVehicle().getVehicleId(), true);
+            }
+        }
+
+        Booking saved = bookingRepository.save(booking);
+        return convertToResponseDTO(saved);
+    }
+
+    /**
      * Convert Booking entity → BookingResponseDTO.
      */
     public BookingResponseDTO convertToResponseDTO(Booking booking) {

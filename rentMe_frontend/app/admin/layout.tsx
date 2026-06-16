@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts';
 import { useRouter } from 'next/navigation';
 import { UserRole } from '@/types';
-import { Car, LayoutDashboard, TrendingUp, Users, CheckCircle, LogOut, User, MessageSquare } from 'lucide-react';
+import { Car, LayoutDashboard, TrendingUp, Users, CheckCircle, LogOut, User, MessageSquare, FileCheck } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -16,6 +16,8 @@ const NAV_LINKS = [
   { href: '/admin/analytics',      label: 'Analytics',       icon: TrendingUp },
   { href: '/admin/users',          label: 'User Management', icon: Users },
   { href: '/admin/verifications',  label: 'Verifications',   icon: CheckCircle },
+  { href: '/admin/vehicles',       label: 'System Vehicles', icon: Car },
+  { href: '/admin/bookings',       label: 'System Bookings', icon: FileCheck },
   { href: '/admin/reviews',        label: 'Reviews',         icon: MessageSquare },
 ];
 

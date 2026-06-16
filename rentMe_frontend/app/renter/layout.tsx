@@ -1,21 +1,23 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts';
 import { useRouter } from 'next/navigation';
 import { UserRole } from '@/types';
-import { Car, Grid3x3, ShoppingCart, MessageSquare, LogOut, User } from 'lucide-react';
+import { Car, Grid3x3, ShoppingCart, MessageSquare, LogOut, User, CheckCircle, Sparkles, X, ArrowRight } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useUnreadCount } from '@/hooks/useUnreadCount';
+import verificationService from '@/services/verification.service';
 
 const NAV_LINKS = [
-  { href: '/renter',          label: 'Browse Vehicles', icon: Grid3x3 },
-  { href: '/renter/bookings', label: 'My Bookings',     icon: ShoppingCart },
-  { href: '/renter/chat',     label: 'Messages',        icon: MessageSquare },
+  { href: '/renter',              label: 'Browse Vehicles', icon: Grid3x3 },
+  { href: '/renter/bookings',     label: 'My Bookings',     icon: ShoppingCart },
+  { href: '/renter/chat',         label: 'Messages',        icon: MessageSquare },
+  { href: '/renter/verification', label: 'Become an Owner', icon: CheckCircle },
 ];
 
 /**
@@ -27,6 +29,43 @@ export default function RenterLayout({ children }: { children: React.ReactNode }
   const router   = useRouter();
   const pathname = usePathname();
   const { unreadCount } = useUnreadCount();
+
+  const [showPrompt, setShowPrompt] = useState(false);
+
+  useEffect(() => {
+    const checkVerificationStatus = async () => {
+      if (typeof window !== 'undefined') {
+        const dismissed = localStorage.getItem('rentme_owner_prompt_dismissed');
+        if (dismissed === 'true') return;
+      }
+
+      try {
+        const latest = await verificationService.getMyLatestVerificationRequest();
+        // Show if no request OR request was rejected
+        if (!latest || latest.status === 'REJECTED') {
+          setShowPrompt(true);
+        }
+      } catch (err) {
+        console.error('Failed to check verification status for prompt:', err);
+      }
+    };
+
+    if (user?.role === UserRole.RENTER) {
+      checkVerificationStatus();
+    }
+  }, [user]);
+
+  const handleDismissPrompt = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('rentme_owner_prompt_dismissed', 'true');
+    }
+    setShowPrompt(false);
+  };
+
+  const handlePromptCTA = () => {
+    handleDismissPrompt();
+    router.push('/renter/verification');
+  };
 
   useEffect(() => {
     if (!isLoading) {
@@ -170,6 +209,50 @@ export default function RenterLayout({ children }: { children: React.ReactNode }
           </div>
         </main>
       </div>
+
+      {/* Popup prompt */}
+      {showPrompt && (
+        <div className="fixed bottom-6 right-6 z-50 max-w-sm w-full bg-card/95 border border-border shadow-2xl rounded-2xl p-5 backdrop-blur-md transition-all duration-300 animate-in fade-in slide-in-from-bottom-5">
+          <div className="absolute -top-10 -right-10 w-32 h-32 bg-primary/10 rounded-full blur-2xl pointer-events-none" />
+          
+          <button
+            onClick={handleDismissPrompt}
+            className="absolute top-3.5 right-3.5 text-muted-foreground hover:text-foreground hover:bg-muted p-1 rounded-lg transition-colors"
+          >
+            <X className="h-4 w-4" />
+          </button>
+
+          <div className="flex items-start gap-3.5">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <Sparkles className="h-5 w-5" />
+            </div>
+            <div className="space-y-1.5 pr-4">
+              <h4 className="font-semibold text-foreground text-sm tracking-tight">Earn with RentMe</h4>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Want to earn with RentMe? Become a verified vehicle owner and start listing your vehicles today.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex gap-2.5 mt-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleDismissPrompt}
+              className="flex-1 text-xs"
+            >
+              Maybe Later
+            </Button>
+            <Button
+              size="sm"
+              onClick={handlePromptCTA}
+              className="flex-1 text-xs font-semibold gap-1 bg-gradient-to-r from-primary to-primary/90 hover:opacity-95"
+            >
+              Get Started <ArrowRight className="h-3 w-3" />
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -104,48 +104,58 @@ export function MapLocationSelectorModal({
 
     const L = window.L;
 
-    // Destory existing map if re-initializing
+    // Destroy existing map if re-initializing
     if (leafletMap.current) {
       leafletMap.current.remove();
       leafletMap.current = null;
       markerRef.current = null;
     }
 
-    const map = L.map(mapRef.current).setView(
-      [selectedLocation.latitude, selectedLocation.longitude],
-      13
-    );
-    leafletMap.current = map;
+    // Use a short delay to ensure the Dialog's CSS animation has finished
+    // and the map container has a real rendered size before Leaflet initializes.
+    const initTimer = setTimeout(() => {
+      if (!mapRef.current) return;
 
-    // Use a beautiful modern light tile layer
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-      maxZoom: 20,
-    }).addTo(map);
+      const map = L.map(mapRef.current).setView(
+        [selectedLocation.latitude, selectedLocation.longitude],
+        13
+      );
+      leafletMap.current = map;
 
-    // Create marker
-    const marker = L.marker([selectedLocation.latitude, selectedLocation.longitude], {
-      draggable: true,
-    }).addTo(map);
-    markerRef.current = marker;
+      // Use a beautiful modern light tile layer
+      L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        maxZoom: 20,
+      }).addTo(map);
 
-    // Handle marker drag end
-    marker.on("dragend", async () => {
-      const position = marker.getLatLng();
-      await updateCoords(position.lat, position.lng);
-    });
+      // Create marker
+      const marker = L.marker([selectedLocation.latitude, selectedLocation.longitude], {
+        draggable: true,
+      }).addTo(map);
+      markerRef.current = marker;
 
-    // Handle click on map to move marker
-    map.on("click", async (e: any) => {
-      const position = e.latlng;
-      marker.setLatLng(position);
-      await updateCoords(position.lat, position.lng);
-    });
+      // Handle marker drag end
+      marker.on("dragend", async () => {
+        const position = marker.getLatLng();
+        await updateCoords(position.lat, position.lng);
+      });
 
-    // Initial reverse geocode to fetch address
-    updateCoords(selectedLocation.latitude, selectedLocation.longitude);
+      // Handle click on map to move marker
+      map.on("click", async (e: any) => {
+        const position = e.latlng;
+        marker.setLatLng(position);
+        await updateCoords(position.lat, position.lng);
+      });
+
+      // Force Leaflet to recalculate the map dimensions after render
+      setTimeout(() => map.invalidateSize(), 100);
+
+      // Initial reverse geocode to fetch address
+      updateCoords(selectedLocation.latitude, selectedLocation.longitude);
+    }, 150);
 
     return () => {
+      clearTimeout(initTimer);
       if (leafletMap.current) {
         leafletMap.current.remove();
         leafletMap.current = null;
@@ -234,7 +244,7 @@ export function MapLocationSelectorModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl w-full flex flex-col h-[500px]">
+      <DialogContent className="max-w-xl w-full flex flex-col">
         <DialogHeader className="pb-2">
           <DialogTitle className="flex items-center gap-2">
             <MapPin className="h-5 w-5 text-primary animate-bounce" />
@@ -261,7 +271,7 @@ export function MapLocationSelectorModal({
         </div>
 
         {/* Map Container */}
-        <div className="flex-1 border rounded-lg overflow-hidden bg-muted relative min-h-[220px] my-2">
+        <div className="border rounded-lg overflow-hidden bg-muted relative h-[300px] my-2">
           {!scriptLoaded && (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-muted-foreground">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />

@@ -169,8 +169,43 @@ public class VehicleController {
     @GetMapping("/api/v1/admin/vehicles")
     public ResponseEntity<List<VehicleResponseDTO>> getAllVehiclesAdmin() {
         // Return all vehicles (listed or not, available or not)
-        List<VehicleResponseDTO> all = vehicleService.getAllAvailableVehicles();
+        List<VehicleResponseDTO> all = vehicleService.getAllVehiclesAdmin();
         return ResponseEntity.ok(all);
+    }
+
+    /**
+     * DELETE /api/v1/admin/vehicles/{vehicleId}
+     * Admin hard-deletes any vehicle listing.
+     */
+    @PreAuthorize("hasRole('ADMIN')")
+    @DeleteMapping("/api/v1/admin/vehicles/{vehicleId}")
+    public ResponseEntity<?> adminDeleteVehicle(@PathVariable Long vehicleId) {
+        try {
+            vehicleService.adminDeleteVehicle(vehicleId);
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "Vehicle deleted successfully by admin");
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(buildError(e.getMessage()));
+        }
+    }
+
+    /**
+     * PATCH /api/v1/admin/vehicles/{vehicleId}/availability
+     * Admin toggles listing/availability status of any vehicle.
+     */
+    @PreAuthorize("hasRole('ADMIN')")
+    @PatchMapping("/api/v1/admin/vehicles/{vehicleId}/availability")
+    public ResponseEntity<?> adminUpdateAvailability(
+            @PathVariable Long vehicleId,
+            @RequestBody VehicleAvailabilityUpdateDTO request) {
+        try {
+            VehicleResponseDTO updated = vehicleService.adminUpdateAvailability(vehicleId, request);
+            return ResponseEntity.ok(updated);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(buildError(e.getMessage()));
+        }
     }
 
     // ─────────────────────────────────────────────────────────────────────────

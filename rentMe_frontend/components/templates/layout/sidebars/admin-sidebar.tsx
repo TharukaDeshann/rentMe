@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, TrendingUp, Users, CheckCircle, MessageSquare } from "lucide-react";
+import { LayoutDashboard, TrendingUp, Users, CheckCircle, MessageSquare, Car, FileCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const LINKS = [
@@ -10,6 +10,8 @@ const LINKS = [
   { href: "/admin/analytics",     label: "Analytics",       icon: TrendingUp },
   { href: "/admin/users",         label: "User Management", icon: Users },
   { href: "/admin/verifications", label: "Verifications",   icon: CheckCircle },
+  { href: "/admin/vehicles",      label: "System Vehicles", icon: Car },
+  { href: "/admin/bookings",      label: "System Bookings", icon: FileCheck },
   { href: "/admin/chat",          label: "Chat Monitor",    icon: MessageSquare },
 ];
 

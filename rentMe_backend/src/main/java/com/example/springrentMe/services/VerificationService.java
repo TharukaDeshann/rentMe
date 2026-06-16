@@ -4,6 +4,7 @@ import com.example.springrentMe.DTOs.AdminVerificationActionDTO;
 import com.example.springrentMe.DTOs.DocumentResponseDTO;
 import com.example.springrentMe.DTOs.VerificationRequestResponseDTO;
 import com.example.springrentMe.models.*;
+import com.example.springrentMe.repositories.UserRepository;
 import com.example.springrentMe.repositories.VehicleOwnerRepository;
 import com.example.springrentMe.repositories.VerificationRequestRepository;
 import com.example.springrentMe.security.UserDetailsImpl;
@@ -34,6 +35,7 @@ public class VerificationService {
 
     @Autowired private VerificationRequestRepository vrRepository;
     @Autowired private VehicleOwnerRepository        vehicleOwnerRepository;
+    @Autowired private UserRepository                userRepository;
     @Autowired private DocumentService               documentService;
     @Autowired private FileStorageService            fileStorageService;
     @Autowired private FileValidationService         fileValidationService;
@@ -61,7 +63,7 @@ public class VerificationService {
 
         fileValidationService.validateAll(files);
 
-        VehicleOwner owner = getOwnerForCurrentUser();
+        VehicleOwner owner = getOrCreateOwnerForCurrentUser();
 
         // Guard: no duplicate PENDING
         if (vrRepository.existsByVehicleOwner_VehicleOwnerIdAndStatus(
@@ -118,7 +120,12 @@ public class VerificationService {
 
     @Transactional(readOnly = true)
     public List<VerificationRequestResponseDTO> getMyVerificationHistory() {
-        VehicleOwner owner = getOwnerForCurrentUser();
+        Long userId = getCurrentUserId();
+        java.util.Optional<VehicleOwner> ownerOpt = vehicleOwnerRepository.findByUser_UserId(userId);
+        if (ownerOpt.isEmpty()) {
+            return List.of();
+        }
+        VehicleOwner owner = ownerOpt.get();
         return vrRepository
                 .findByVehicleOwner_VehicleOwnerIdOrderBySubmittedAtDesc(owner.getVehicleOwnerId())
                 .stream()
@@ -128,7 +135,12 @@ public class VerificationService {
 
     @Transactional(readOnly = true)
     public VerificationRequestResponseDTO getMyLatestRequest() {
-        VehicleOwner owner = getOwnerForCurrentUser();
+        Long userId = getCurrentUserId();
+        java.util.Optional<VehicleOwner> ownerOpt = vehicleOwnerRepository.findByUser_UserId(userId);
+        if (ownerOpt.isEmpty()) {
+            throw new RuntimeException("No verification request found.");
+        }
+        VehicleOwner owner = ownerOpt.get();
         return vrRepository
                 .findTopByVehicleOwner_VehicleOwnerIdOrderBySubmittedAtDesc(owner.getVehicleOwnerId())
                 .map(this::convertToDTO)
@@ -209,6 +221,10 @@ public class VerificationService {
             owner.setVerificationStatus(VerificationStatus.APPROVED);
             vehicleOwnerRepository.save(owner);
 
+            User user = owner.getUser();
+            user.setRole(UserRole.VEHICLE_OWNER);
+            userRepository.save(user);
+
         } else {
             // ── REJECT ───────────────────────────────────────────────────────
             String reason = action.getRejectionReason();
@@ -236,6 +252,19 @@ public class VerificationService {
         Long userId = getCurrentUserId();
         return vehicleOwnerRepository.findByUser_UserId(userId)
                 .orElseThrow(() -> new RuntimeException("Vehicle owner profile not found."));
+    }
+
+    private VehicleOwner getOrCreateOwnerForCurrentUser() {
+        Long userId = getCurrentUserId();
+        return vehicleOwnerRepository.findByUser_UserId(userId)
+                .orElseGet(() -> {
+                    User user = userRepository.findById(userId)
+                            .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+                    VehicleOwner owner = new VehicleOwner();
+                    owner.setUser(user);
+                    owner.setVerificationStatus(VerificationStatus.NOT_SUBMITTED);
+                    return vehicleOwnerRepository.save(owner);
+                });
     }
 
     private VerificationRequest findRequestOrThrow(Long id) {

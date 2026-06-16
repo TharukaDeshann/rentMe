@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { formatLKR } from "@/utils/currency";
-import { Plus, Edit2, Trash2, Eye, EyeOff, Loader2, FileText } from "lucide-react";
+import { Plus, Edit2, Trash2, Eye, EyeOff, Loader2, FileText, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { VehicleFormModal } from "@/components/modals/VehicleFormModal";
 import { VehicleDocumentsModal } from "@/components/modals/VehicleDocumentsModal";
 import { ConfirmDeleteModal } from "@/components/modals/ConfirmDeleteModal";
+import { VehicleProfileModal } from "@/components/modals/VehicleProfileModal";
 
 export function MyVehicles() {
   const [ownerVehicles, setOwnerVehicles] = useState<any[]>([]);
@@ -25,6 +26,9 @@ export function MyVehicles() {
 
   const [showDocsModal, setShowDocsModal] = useState(false);
   const [selectedVehicleForDocs, setSelectedVehicleForDocs] = useState<any>(null);
+
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [selectedVehicleForProfile, setSelectedVehicleForProfile] = useState<any>(null);
 
   // Delete Confirmation Modal State
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -144,6 +148,11 @@ export function MyVehicles() {
     setShowDocsModal(true);
   };
 
+  const handleViewProfile = (vehicle: any) => {
+    setSelectedVehicleForProfile(vehicle);
+    setShowProfileModal(true);
+  };
+
   return (
     <div className="space-y-6 p-6 lg:p-8">
       <div className="flex items-center justify-between">
@@ -172,10 +181,17 @@ export function MyVehicles() {
       ) : (
         <div className="grid gap-4">
           {ownerVehicles.map((vehicle) => (
-            <Card key={vehicle.vehicleId} className="border border-border shadow-none overflow-hidden">
+            <Card
+              key={vehicle.vehicleId}
+              className="border border-border shadow-none overflow-hidden hover:border-primary/40 hover:shadow-sm transition-all duration-200 group"
+            >
               <CardContent className="p-0">
                 <div className="grid sm:grid-cols-[160px_1fr] gap-0">
-                  <div className="relative h-36 sm:h-auto bg-muted overflow-hidden">
+                  {/* Clickable thumbnail */}
+                  <button
+                    onClick={() => handleViewProfile(vehicle)}
+                    className="relative h-36 sm:h-auto bg-muted overflow-hidden text-left focus:outline-none"
+                  >
                     <img
                       src={
                         (Array.isArray(vehicle.pictures)
@@ -184,15 +200,27 @@ export function MyVehicles() {
                       }
                       alt={`${vehicle.make} ${vehicle.model}`}
                       onError={(e) => (e.currentTarget.src = "/placeholder.jpg")}
-                      className="h-full w-full object-cover"
+                      className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
-                  </div>
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                      <span className="opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 text-white text-xs font-medium px-2 py-1 rounded-full flex items-center gap-1">
+                        <ExternalLink className="h-3 w-3" /> View Profile
+                      </span>
+                    </div>
+                  </button>
+
                   <div className="flex flex-wrap items-center gap-x-6 gap-y-3 p-5">
+                    {/* Title — also clickable */}
                     <div className="min-w-0 flex-1">
-                      <h3 className="font-semibold text-foreground">
-                        {vehicle.make} {vehicle.model}
-                      </h3>
-                      <p className="text-sm text-muted-foreground">{vehicle.type}</p>
+                      <button
+                        onClick={() => handleViewProfile(vehicle)}
+                        className="text-left group/title"
+                      >
+                        <h3 className="font-semibold text-foreground group-hover/title:text-primary transition-colors">
+                          {vehicle.make} {vehicle.model}
+                        </h3>
+                        <p className="text-sm text-muted-foreground">{vehicle.type}</p>
+                      </button>
                     </div>
                     <div className="text-sm">
                       <p className="text-xs text-muted-foreground mb-0.5">Pickup Location</p>
@@ -210,6 +238,16 @@ export function MyVehicles() {
                     </div>
 
                     <div className="flex gap-1.5 ml-auto">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1.5 h-8"
+                        onClick={() => handleViewProfile(vehicle)}
+                        title="View vehicle profile"
+                      >
+                        <ExternalLink className="h-3.5 w-3.5" />
+                        Profile
+                      </Button>
                       <Button
                         size="sm"
                         variant="outline"
@@ -259,6 +297,15 @@ export function MyVehicles() {
         onOpenChange={setShowFormModal}
         vehicle={selectedVehicle}
         onSuccess={fetchMyVehicles}
+      />
+
+      {/* Vehicle Profile Modal */}
+      <VehicleProfileModal
+        open={showProfileModal}
+        onOpenChange={setShowProfileModal}
+        vehicle={selectedVehicleForProfile}
+        onEdit={(v) => { setSelectedVehicle(v); setShowFormModal(true); }}
+        onManageDocs={(v) => { setSelectedVehicleForDocs(v); setShowDocsModal(true); }}
       />
 
       {/* Document management Modal */}

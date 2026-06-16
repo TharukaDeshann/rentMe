@@ -74,6 +74,17 @@ public class VehicleService {
     }
 
     /**
+     * Admin view: Get all vehicles regardless of status.
+     */
+    @Transactional(readOnly = true)
+    public List<VehicleResponseDTO> getAllVehiclesAdmin() {
+        return vehicleRepository.findAll()
+                .stream()
+                .map(this::convertToResponseDTO)
+                .collect(Collectors.toList());
+    }
+
+    /**
      * Search with optional filters (public).
      */
     @Transactional(readOnly = true)
@@ -293,6 +304,59 @@ public class VehicleService {
         if (request.getIsListed() != null) {
             vehicle.setIsListed(request.getIsListed());
         }
+    }
+
+    /**
+     * Admin delete vehicle listing (hard delete).
+     */
+    @Transactional
+    public void adminDeleteVehicle(Long vehicleId) {
+        Vehicle vehicle = findVehicleOrThrow(vehicleId);
+        
+        // Check for active bookings
+        if (vehicle.getBookings() != null) {
+            boolean hasActiveBookings = vehicle.getBookings().stream()
+                    .anyMatch(b -> b.getStatus() == BookingStatus.PENDING 
+                            || b.getStatus() == BookingStatus.APPROVED 
+                            || b.getStatus() == BookingStatus.ONGOING);
+            if (hasActiveBookings) {
+                throw new RuntimeException("Cannot delete vehicle because it has pending, approved, or ongoing bookings. Please resolve them first.");
+            }
+        }
+        
+        // 1. Delete related documents (also cleans up filesystem/S3 files)
+        if (vehicle.getDocuments() != null) {
+            List<Document> docs = new ArrayList<>(vehicle.getDocuments());
+            for (Document doc : docs) {
+                documentService.deleteDocument(doc.getDocumentId());
+            }
+        }
+        
+        // 2. Delete related bookings
+        if (vehicle.getBookings() != null) {
+            bookingRepository.deleteAll(vehicle.getBookings());
+        }
+        
+        // 3. Delete the vehicle itself
+        vehicleRepository.delete(vehicle);
+    }
+
+    /**
+     * Admin updates vehicle availability/listing status.
+     */
+    @Transactional
+    public VehicleResponseDTO adminUpdateAvailability(Long vehicleId, VehicleAvailabilityUpdateDTO request) {
+        Vehicle vehicle = findVehicleOrThrow(vehicleId);
+
+        if (request.getIsAvailable() != null) {
+            vehicle.setIsAvailable(request.getIsAvailable());
+        }
+        if (request.getIsListed() != null) {
+            vehicle.setIsListed(request.getIsListed());
+        }
+
+        Vehicle saved = vehicleRepository.save(vehicle);
+        return convertToResponseDTO(saved);
     }
 
     /**

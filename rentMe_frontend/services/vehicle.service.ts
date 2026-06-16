@@ -114,6 +114,49 @@ export const deleteVehicle = async (vehicleId: number | string): Promise<void> =
   }
 }
 
+/**
+ * GET /admin/vehicles — list all vehicles for admin regardless of status
+ */
+export const getAllVehiclesAdmin = async (): Promise<Vehicle[]> => {
+  try {
+    const response = await apiClient.get<Vehicle[]>("/admin/vehicles");
+    return response.data;
+  } catch (error) {
+    throw new Error(getErrorMessage(error));
+  }
+};
+
+/**
+ * PATCH /admin/vehicles/:id/availability — toggle availability or listing status by admin
+ */
+export const adminUpdateVehicleAvailability = async (
+  vehicleId: number | string,
+  data: { isAvailable?: boolean; isListed?: boolean }
+): Promise<Vehicle> => {
+  try {
+    const response = await apiClient.patch<Vehicle>(
+      `/admin/vehicles/${vehicleId}/availability`,
+      data
+    );
+    return response.data;
+  } catch (error) {
+    throw new Error(getErrorMessage(error));
+  }
+};
+
+/**
+ * DELETE /admin/vehicles/:id — delete a vehicle by admin
+ */
+export const adminDeleteVehicle = async (
+  vehicleId: number | string
+): Promise<void> => {
+  try {
+    await apiClient.delete(`/admin/vehicles/${vehicleId}`);
+  } catch (error) {
+    throw new Error(getErrorMessage(error));
+  }
+};
+
 const vehicleService = {
   getAvailableVehicles,
   getVehicleById,
@@ -123,6 +166,9 @@ const vehicleService = {
   updateVehicle,
   updateVehicleAvailability,
   deleteVehicle,
+  getAllVehiclesAdmin,
+  adminUpdateVehicleAvailability,
+  adminDeleteVehicle,
 };
 
 export default vehicleService;
