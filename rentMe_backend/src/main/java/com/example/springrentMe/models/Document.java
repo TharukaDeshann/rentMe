@@ -49,6 +49,10 @@ public class Document {
     @JoinColumn(name = "verification_request_id")
     private VerificationRequest verificationRequest;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "booking_id")
+    private Booking booking;
+
     // ── Metadata ─────────────────────────────────────────────────────────────
 
     @NotNull(message = "Document type is required")

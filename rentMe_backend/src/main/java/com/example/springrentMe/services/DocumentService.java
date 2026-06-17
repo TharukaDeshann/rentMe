@@ -2,6 +2,7 @@ package com.example.springrentMe.services;
 
 import com.example.springrentMe.DTOs.DocumentResponseDTO;
 import com.example.springrentMe.models.*;
+import com.example.springrentMe.repositories.BookingRepository;
 import com.example.springrentMe.repositories.DocumentRepository;
 import com.example.springrentMe.repositories.VehicleOwnerRepository;
 import com.example.springrentMe.repositories.VehicleRepository;
@@ -34,6 +35,7 @@ public class DocumentService {
     @Autowired private VehicleRepository        vehicleRepository;
     @Autowired private VehicleOwnerRepository   vehicleOwnerRepository;
     @Autowired private VerificationRequestRepository vrRepository;
+    @Autowired private BookingRepository        bookingRepository;
     @Autowired private FileStorageService       fileStorageService;
     @Autowired private FileValidationService    fileValidationService;
 
@@ -147,6 +149,57 @@ public class DocumentService {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
+    // Booking condition document upload
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Upload one or more condition images for a booking.
+     * The booking must belong to a vehicle owned by the currently authenticated owner.
+     * The booking status must be ONGOING.
+     */
+    @Transactional
+    public List<DocumentResponseDTO> uploadBookingConditionImages(
+            Long bookingId,
+            MultipartFile[] files) {
+
+        fileValidationService.validateAll(files);
+
+        Long userId = getCurrentUserId();
+        VehicleOwner owner = vehicleOwnerRepository.findByUser_UserId(userId)
+                .orElseThrow(() -> new RuntimeException("Vehicle owner profile not found."));
+
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new RuntimeException("Booking not found: " + bookingId));
+
+        if (!booking.getVehicle().getVehicleOwner().getVehicleOwnerId().equals(owner.getVehicleOwnerId())) {
+            throw new RuntimeException("You do not have permission to upload condition images for this booking.");
+        }
+
+        if (booking.getStatus() != BookingStatus.ONGOING) {
+            throw new RuntimeException("Condition images can only be uploaded when the booking is ONGOING.");
+        }
+
+        String folder = "bookings/" + bookingId + "/condition";
+
+        return Arrays.stream(files)
+                .map(file -> {
+                    String ref = fileStorageService.store(file, folder);
+                    Document doc = Document.builder()
+                            .booking(booking)
+                            .documentType(DocumentType.BOOKING_CONDITION_IMAGE)
+                            .documentName("Vehicle Condition Image")
+                            .fileUrl(ref)
+                            .originalFilename(file.getOriginalFilename())
+                            .contentType(file.getContentType())
+                            .fileSize(file.getSize())
+                            .storageProvider(fileStorageService.getProviderName())
+                            .build();
+                    return convertToDTO(documentRepository.save(doc));
+                })
+                .collect(Collectors.toList());
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
     // Read
     // ─────────────────────────────────────────────────────────────────────────
 
@@ -204,6 +257,18 @@ public class DocumentService {
                 }
                 if (doc.getVerificationRequest().getStatus() != VerificationStatus.PENDING) {
                     throw new RuntimeException("Cannot delete documents from a non-PENDING verification request.");
+                }
+            }
+            // Ownership check for booking condition images
+            if (doc.getBooking() != null) {
+                Long ownerId = doc.getBooking().getVehicle().getVehicleOwner().getVehicleOwnerId();
+                VehicleOwner me = vehicleOwnerRepository.findByUser_UserId(userId)
+                        .orElseThrow(() -> new RuntimeException("Owner profile not found."));
+                if (!ownerId.equals(me.getVehicleOwnerId())) {
+                    throw new RuntimeException("You do not have permission to delete this document.");
+                }
+                if (doc.getBooking().getStatus() != BookingStatus.ONGOING) {
+                    throw new RuntimeException("Cannot delete condition images from a non-ONGOING booking.");
                 }
             }
         }
@@ -265,6 +330,7 @@ public class DocumentService {
                 .vehicleId(doc.getVehicle() != null ? doc.getVehicle().getVehicleId() : null)
                 .verificationRequestId(doc.getVerificationRequest() != null
                         ? doc.getVerificationRequest().getRequestId() : null)
+                .bookingId(doc.getBooking() != null ? doc.getBooking().getBookingId() : null)
                 .build();
     }
 }

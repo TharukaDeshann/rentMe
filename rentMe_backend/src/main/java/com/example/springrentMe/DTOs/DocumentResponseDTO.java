@@ -38,4 +38,5 @@ public class DocumentResponseDTO {
     // Parent context (only one will be non-null)
     private Long vehicleId;
     private Long verificationRequestId;
+    private Long bookingId;
 }

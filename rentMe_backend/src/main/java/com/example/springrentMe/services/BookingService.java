@@ -175,6 +175,31 @@ public class BookingService {
     }
 
     /**
+     * Owner marks an ONGOING booking as checked out / picked up.
+     * This records the actual pick-up timestamp.
+     */
+    @Transactional
+    public java.time.LocalDateTime markAsPickedUp(Long bookingId) {
+        VehicleOwner owner = getOwnerForCurrentUser();
+        Booking booking = findBookingOrThrow(bookingId);
+
+        // Ensure this booking belongs to the owner's vehicle
+        if (!booking.getVehicle().getVehicleOwner().getVehicleOwnerId()
+                .equals(owner.getVehicleOwnerId())) {
+            throw new RuntimeException("You do not have permission to update this booking.");
+        }
+
+        if (booking.getStatus() != BookingStatus.ONGOING) {
+            throw new RuntimeException("Booking must be in ONGOING status to mark as picked up.");
+        }
+
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        booking.setActualPickUpTime(now);
+        bookingRepository.save(booking);
+        return now;
+    }
+
+    /**
      * Renter cancels their OWN PENDING booking.
      * A renter can only cancel while the booking is still PENDING (before owner
      * approves).
@@ -411,6 +436,15 @@ public class BookingService {
         dto.setTotalAmount(booking.getTotalAmount());
         dto.setNotes(booking.getNotes());
         dto.setCancellationReason(booking.getCancellationReason());
+        dto.setActualPickUpTime(booking.getActualPickUpTime());
+        
+        List<com.example.springrentMe.DTOs.DocumentResponseDTO> conditionImages = booking.getConditionImages() != null
+            ? booking.getConditionImages().stream()
+                .map(documentService::convertToDTO)
+                .collect(Collectors.toList())
+            : new java.util.ArrayList<>();
+        dto.setConditionImages(conditionImages);
+
         dto.setCreatedAt(booking.getCreatedAt());
         dto.setUpdatedAt(booking.getUpdatedAt());
 

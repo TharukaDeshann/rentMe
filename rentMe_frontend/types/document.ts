@@ -14,7 +14,9 @@ export type DocumentType =
   | "OWNER_NIC"
   | "OWNER_DRIVING_LICENSE"
   | "OWNER_ADDRESS_PROOF"
-  | "OWNER_OTHER";
+  | "OWNER_OTHER"
+  // Booking documents
+  | "BOOKING_CONDITION_IMAGE";
 
 export interface Document {
   documentId: number;
@@ -30,6 +32,7 @@ export interface Document {
   // Only one will be non-null
   vehicleId: number | null;
   verificationRequestId: number | null;
+  bookingId: number | null;
 }
 
 // ─── Verification ─────────────────────────────────────────────────────────────
@@ -74,6 +77,7 @@ export const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
   OWNER_DRIVING_LICENSE: "Driving Licence",
   OWNER_ADDRESS_PROOF:   "Address Proof",
   OWNER_OTHER:           "Other Document",
+  BOOKING_CONDITION_IMAGE: "Vehicle Condition Image",
 };
 
 export const VEHICLE_DOCUMENT_TYPES: DocumentType[] = [

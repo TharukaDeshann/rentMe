@@ -147,6 +147,24 @@ public class BookingController {
         }
     }
 
+    /**
+     * PATCH /api/v1/owner/bookings/{bookingId}/pickup
+     * Owner marks an ONGOING booking as checked out / picked up.
+     */
+    @PreAuthorize("hasRole('VEHICLE_OWNER')")
+    @PatchMapping("/owner/bookings/{bookingId}/pickup")
+    public ResponseEntity<?> markAsPickedUp(@PathVariable Long bookingId) {
+        try {
+            java.time.LocalDateTime pickupTime = bookingService.markAsPickedUp(bookingId);
+            java.util.Map<String, Object> response = new java.util.HashMap<>();
+            response.put("bookingId", bookingId);
+            response.put("actualPickUpTime", pickupTime);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(buildError(e.getMessage()));
+        }
+    }
+
     // ─────────────────────────────────────────────────────────────────────────
     // ADMIN ENDPOINTS
     // ─────────────────────────────────────────────────────────────────────────

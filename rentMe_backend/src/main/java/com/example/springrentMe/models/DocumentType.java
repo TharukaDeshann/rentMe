@@ -17,5 +17,8 @@ public enum DocumentType {
     OWNER_NIC,              // National Identity Card
     OWNER_DRIVING_LICENSE,  // Driver's licence
     OWNER_ADDRESS_PROOF,    // Utility bill, bank statement, etc.
-    OWNER_OTHER             // Any additional document the owner wants to include
+    OWNER_OTHER,             // Any additional document the owner wants to include
+
+    // ── Booking documents ─────────────────────────────────────────────────────
+    BOOKING_CONDITION_IMAGE // Condition of vehicle at check-out/handover
 }

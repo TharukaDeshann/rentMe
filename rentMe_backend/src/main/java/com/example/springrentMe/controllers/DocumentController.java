@@ -81,6 +81,30 @@ public class DocumentController {
         }
     }
 
+    /**
+     * POST /api/v1/owner/bookings/{bookingId}/condition-images
+     *
+     * Multipart form fields:
+     *   files        (required) — one or more files
+     *
+     * Requires: VEHICLE_OWNER role
+     */
+    @PreAuthorize("hasRole('VEHICLE_OWNER')")
+    @PostMapping(
+        value = "/api/v1/owner/bookings/{bookingId}/condition-images",
+        consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
+    public ResponseEntity<?> uploadBookingConditionImages(
+            @PathVariable Long bookingId,
+            @RequestParam("files") MultipartFile[] files) {
+        try {
+            List<DocumentResponseDTO> saved = documentService.uploadBookingConditionImages(bookingId, files);
+            return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(buildError(e.getMessage()));
+        }
+    }
+
     // ─────────────────────────────────────────────────────────────────────────
     // List vehicle documents
     // ─────────────────────────────────────────────────────────────────────────

@@ -142,6 +142,42 @@ export const adminUpdateBookingStatus = async (
   }
 };
 
+export const markBookingAsPickedUp = async (
+  bookingId: number | string
+): Promise<{ bookingId: number; actualPickUpTime: string }> => {
+  try {
+    const response = await apiClient.patch<{ bookingId: number; actualPickUpTime: string }>(
+      `/owner/bookings/${bookingId}/pickup`
+    );
+    return response.data;
+  } catch (error) {
+    throw new Error(getErrorMessage(error));
+  }
+};
+
+export const uploadBookingConditionImages = async (
+  bookingId: number | string,
+  files: File[]
+): Promise<import("@/types/document").Document[]> => {
+  try {
+    const form = new FormData();
+    files.forEach((f) => form.append("files", f));
+
+    const response = await apiClient.post<import("@/types/document").Document[]>(
+      `/owner/bookings/${bookingId}/condition-images`,
+      form,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    throw new Error(getErrorMessage(error));
+  }
+};
+
 const bookingService = {
   createBooking,
   getMyBookingsAsRenter,
@@ -152,6 +188,8 @@ const bookingService = {
   updateBookingStatusAsOwner,
   getAllBookingsAdmin,
   adminUpdateBookingStatus,
+  markBookingAsPickedUp,
+  uploadBookingConditionImages,
 };
 
 export default bookingService;

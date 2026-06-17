@@ -87,6 +87,8 @@ export interface Booking {
   vehicleOwnerId: number;
   ownerName: string;
   ownerEmail: string;
+  actualPickUpTime?: string;
+  conditionImages?: import("./document").Document[];
   createdAt: string;
   updatedAt: string;
 }

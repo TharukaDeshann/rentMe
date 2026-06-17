@@ -53,6 +53,9 @@ public class BookingResponseDTO {
     private String ownerName;
     private String ownerEmail;
 
+    private LocalDateTime actualPickUpTime;
+    private List<DocumentResponseDTO> conditionImages;
+
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }
