@@ -42,6 +42,83 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Handle access denied exceptions
+     */
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    public ResponseEntity<Map<String, Object>> handleAccessDeniedException(org.springframework.security.access.AccessDeniedException ex) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", false);
+        response.put("message", "Access denied: " + ex.getMessage());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+    }
+
+    /**
+     * Handle ChatSessionException
+     */
+    @ExceptionHandler(ChatSessionException.class)
+    public ResponseEntity<Map<String, Object>> handleChatSessionException(ChatSessionException ex) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", false);
+        response.put("message", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(response);
+    }
+
+    /**
+     * Handle MessageValidationException
+     */
+    @ExceptionHandler(MessageValidationException.class)
+    public ResponseEntity<Map<String, Object>> handleMessageValidationException(MessageValidationException ex) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", false);
+        response.put("message", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
+    /**
+     * Handle BookingNotCompletedException (422)
+     */
+    @ExceptionHandler(BookingNotCompletedException.class)
+    public ResponseEntity<Map<String, Object>> handleBookingNotCompletedException(BookingNotCompletedException ex) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", false);
+        response.put("message", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(response);
+    }
+
+    /**
+     * Handle UnauthorizedReviewException (403)
+     */
+    @ExceptionHandler(UnauthorizedReviewException.class)
+    public ResponseEntity<Map<String, Object>> handleUnauthorizedReviewException(UnauthorizedReviewException ex) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", false);
+        response.put("message", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+    }
+
+    /**
+     * Handle DuplicateReviewException (409)
+     */
+    @ExceptionHandler(DuplicateReviewException.class)
+    public ResponseEntity<Map<String, Object>> handleDuplicateReviewException(DuplicateReviewException ex) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", false);
+        response.put("message", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+    }
+
+    /**
+     * Handle ReviewValidationException (400)
+     */
+    @ExceptionHandler(ReviewValidationException.class)
+    public ResponseEntity<Map<String, Object>> handleReviewValidationException(ReviewValidationException ex) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", false);
+        response.put("message", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
+    /**
      * Handle generic runtime exceptions
      */
     @ExceptionHandler(RuntimeException.class)

@@ -76,6 +76,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/public/**").permitAll() // Public vehicle search
                         .requestMatchers("/error").permitAll()
                         .requestMatchers("/oauth2/**").permitAll() // OAuth2 endpoints
+                        .requestMatchers("/ws/**").permitAll() // WebSocket handshake endpoint
+                        .requestMatchers("/api/v1/files/**").permitAll() // Allow serving public images / files, protected manually in controller
 
                         // Admin-only endpoints
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
@@ -85,6 +87,8 @@ public class SecurityConfig {
 
                         // User endpoints - protected by @PreAuthorize annotations
                         .requestMatchers("/api/v1/users/**").authenticated()
+                        .requestMatchers("/api/v1/chat/**").authenticated()
+                        .requestMatchers("/api/v1/bookings/**").authenticated()
 
                         // All other endpoints require authentication
                         .anyRequest().authenticated())

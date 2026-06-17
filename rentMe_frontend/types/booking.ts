@@ -17,6 +17,19 @@ export type VehicleType =
   | "MINIVAN"
   | "PICKUP";
 
+  export const VEHICLE_TYPES: VehicleType[] = [
+  "SEDAN",
+  "SUV",
+  "TRUCK",
+  "VAN",
+  "MOTORCYCLE",
+  "HATCHBACK",
+  "COUPE",
+  "CONVERTIBLE",
+  "MINIVAN",
+  "PICKUP",
+];
+
 export interface Vehicle {
   vehicleId: number;
   make: string;
@@ -26,7 +39,6 @@ export interface Vehicle {
   dailyPrice: number;
   description?: string;
   pictures?: string;
-  legalDocuments?: string;
   pickupLocation: string;
   latitude: number;
   longitude: number;
@@ -75,6 +87,8 @@ export interface Booking {
   vehicleOwnerId: number;
   ownerName: string;
   ownerEmail: string;
+  actualPickUpTime?: string;
+  conditionImages?: import("./document").Document[];
   createdAt: string;
   updatedAt: string;
 }

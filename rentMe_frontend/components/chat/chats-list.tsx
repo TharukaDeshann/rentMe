@@ -1,6 +1,7 @@
 "use client"
 
-import { X, MessageSquare, DollarSign } from "lucide-react"
+import { X, MessageSquare, Tag } from "lucide-react"
+import { formatLKR } from "@/utils/currency";
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -52,8 +53,8 @@ export function ChatsList({ currentUserId, onSelectChat, onClose }: ChatsListPro
                         <p className="font-medium text-sm truncate">{otherUser.full_name}</p>
                         <p className="text-xs text-muted-foreground truncate">{chat.last_message}</p>
                         <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
-                          <DollarSign className="h-3 w-3" />
-                          <span>{chat.vehicle.daily_price}/day</span>
+                          <Tag className="h-3 w-3 text-muted-foreground" />
+                          <span>{formatLKR(chat.vehicle.daily_price)}/day</span>
                         </div>
                       </div>
                     </div>

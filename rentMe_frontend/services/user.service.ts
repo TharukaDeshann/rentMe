@@ -7,6 +7,19 @@ import apiClient, { getErrorMessage } from "../lib/api/axios";
 import { User, UpdateUserRequest } from "@/types";
 
 /**
+ * Get ALL users — Admin only
+ * GET /users
+ */
+export const getAllUsers = async (): Promise<User[]> => {
+  try {
+    const response = await apiClient.get<User[]>("/users");
+    return response.data;
+  } catch (error) {
+    throw new Error(getErrorMessage(error));
+  }
+};
+
+/**
  * Get current authenticated user profile
  * @returns User profile data
  */
@@ -52,7 +65,7 @@ export const updateUser = async (
 };
 
 /**
- * Delete user account
+ * Delete (deactivate) user account
  * @param userId - User ID
  */
 export const deleteUser = async (userId: number): Promise<void> => {
@@ -63,11 +76,26 @@ export const deleteUser = async (userId: number): Promise<void> => {
   }
 };
 
+/**
+ * Reactivate a deactivated user — Admin only
+ * @param userId - User ID
+ */
+export const reactivateUser = async (userId: number): Promise<{ message: string }> => {
+  try {
+    const response = await apiClient.post<{ message: string }>(`/users/${userId}/reactivate`);
+    return response.data;
+  } catch (error) {
+    throw new Error(getErrorMessage(error));
+  }
+};
+
 const userService = {
+  getAllUsers,
   getCurrentUserProfile,
   getUserById,
   updateUser,
   deleteUser,
+  reactivateUser,
 };
 
 export default userService;

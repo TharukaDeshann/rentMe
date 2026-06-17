@@ -48,13 +48,13 @@ class AuthenticationIntegrationTest {
         registerRequest = new RegisterRequest();
         registerRequest.setFullName("Integration Test User");
         registerRequest.setEmail("integration@example.com");
-        registerRequest.setPassword("securePassword123");
+        registerRequest.setPassword("SecurePassword123!");
         registerRequest.setContactNumber("+1234567890");
         registerRequest.setRole(UserRole.RENTER);
 
         loginRequest = new LoginRequest();
         loginRequest.setEmail("integration@example.com");
-        loginRequest.setPassword("securePassword123");
+        loginRequest.setPassword("SecurePassword123!");
     }
 
     @Test

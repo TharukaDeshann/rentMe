@@ -1,10 +1,11 @@
 "use client";
 
-import { CheckCircle2, Calendar, MapPin, DollarSign, X } from "lucide-react";
+import { CheckCircle2, Calendar, MapPin, Tag, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Booking } from "@/types/booking";
+import { formatLKR } from "@/utils/currency";
 
 interface BookingConfirmationProps {
   booking: Booking;
@@ -89,11 +90,11 @@ export function BookingConfirmation({
           {/* Pricing */}
           <div className="flex items-center justify-between border-t border-border pt-3">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <DollarSign className="h-4 w-4" />
-              {booking.numberOfDays} days × ${booking.dailyPrice}/day
+              <Tag className="h-4 w-4 text-muted-foreground" />
+              {booking.numberOfDays} days × {formatLKR(booking.dailyPrice)}/day
             </div>
             <span className="text-xl font-bold">
-              ${Number(booking.totalAmount).toFixed(2)}
+              {formatLKR(booking.totalAmount)}
             </span>
           </div>
 

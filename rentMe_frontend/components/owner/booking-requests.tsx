@@ -5,12 +5,17 @@ import {
   Check,
   X,
   Calendar,
-  DollarSign,
+  Tag,
   Loader2,
   AlertCircle,
   MapPin,
   Clock,
+  Upload,
+  Camera,
+  Trash2,
+  Image as ImageIcon,
 } from "lucide-react";
+import { formatLKR } from "@/utils/currency";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -28,8 +33,13 @@ import {
   getMyBookingsAsOwner,
   getPendingBookingRequests,
   updateBookingStatusAsOwner,
+  markBookingAsPickedUp,
+  uploadBookingConditionImages,
+  getBookingById,
 } from "@/services/booking.service";
+import { deleteDocument } from "@/services/document.service";
 import { Booking, BookingStatus } from "@/types/booking";
+import { DocumentViewer } from "@/components/shared/DocumentViewer";
 
 const STATUS_STYLES: Record<BookingStatus, string> = {
   PENDING: "bg-yellow-500/10 text-yellow-700 border-yellow-500/20",
@@ -50,6 +60,58 @@ export function BookingRequests() {
   const [rejectReason, setRejectReason] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+
+  // Condition upload / Pick-up security state
+  const [uploadingBookingId, setUploadingBookingId] = useState<number | null>(null);
+  const [deletingImageId, setDeletingImageId] = useState<number | null>(null);
+
+  const handleMarkAsPickedUp = async (bookingId: number) => {
+    try {
+      setActionLoading(true);
+      setActionError(null);
+      const data = await markBookingAsPickedUp(bookingId);
+      setAllBookings((prev) =>
+        prev.map((b) => (b.bookingId === bookingId ? { ...b, actualPickUpTime: data.actualPickUpTime } : b))
+      );
+    } catch (err: any) {
+      setActionError(err.message || "Failed to mark vehicle as picked up.");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleUploadConditionImages = async (bookingId: number, files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    try {
+      setUploadingBookingId(bookingId);
+      setActionError(null);
+      await uploadBookingConditionImages(bookingId, Array.from(files));
+      const updatedBooking = await getBookingById(bookingId);
+      setAllBookings((prev) =>
+        prev.map((b) => (b.bookingId === bookingId ? updatedBooking : b))
+      );
+    } catch (err: any) {
+      setActionError(err.message || "Failed to upload condition images.");
+    } finally {
+      setUploadingBookingId(null);
+    }
+  };
+
+  const handleDeleteConditionImage = async (bookingId: number, documentId: number) => {
+    try {
+      setDeletingImageId(documentId);
+      setActionError(null);
+      await deleteDocument(documentId);
+      const updatedBooking = await getBookingById(bookingId);
+      setAllBookings((prev) =>
+        prev.map((b) => (b.bookingId === bookingId ? updatedBooking : b))
+      );
+    } catch (err: any) {
+      setActionError(err.message || "Failed to delete condition image.");
+    } finally {
+      setDeletingImageId(null);
+    }
+  };
 
   const fetchData = useCallback(async () => {
     try {
@@ -213,8 +275,8 @@ export function BookingRequests() {
                         </span>
                       </div>
                       <div className="flex items-center gap-2 text-sm font-semibold text-primary">
-                        <DollarSign className="h-4 w-4" />$
-                        {Number(booking.totalAmount).toFixed(2)}
+                        <Tag className="h-4 w-4 text-muted-foreground" />
+                        {formatLKR(booking.totalAmount)}
                       </div>
                       {booking.notes && (
                         <p className="text-xs text-muted-foreground italic">
@@ -305,7 +367,7 @@ export function BookingRequests() {
                       {/* Price & Status */}
                       <div className="text-right shrink-0">
                         <p className="font-bold">
-                          ${Number(booking.totalAmount).toFixed(2)}
+                          {formatLKR(booking.totalAmount)}
                         </p>
                         <Badge className={`mt-1 ${STATUS_STYLES[booking.status]}`}>
                           {booking.status}
@@ -320,6 +382,97 @@ export function BookingRequests() {
                           Reason: {booking.cancellationReason}
                         </p>
                       )}
+
+                    {/* Ongoing Booking Management (Pick-up check and Condition Images) */}
+                    {booking.status === "ONGOING" && (
+                      <div className="mt-4 pt-4 border-t border-border space-y-4 ml-14">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-muted/40 p-3 rounded-lg border border-border/50">
+                          <div className="space-y-1">
+                            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                              <Clock className="h-3.5 w-3.5 text-primary" />
+                              Pick-up Security Check
+                            </h4>
+                            {booking.actualPickUpTime ? (
+                              <p className="text-sm text-foreground flex items-center gap-1.5 font-medium">
+                                <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                                Checked out at {new Date(booking.actualPickUpTime).toLocaleString()}
+                              </p>
+                            ) : (
+                              <p className="text-xs text-muted-foreground">
+                                Renter has not yet checked out the vehicle. Confirm the pick-up below.
+                              </p>
+                            )}
+                          </div>
+                          {!booking.actualPickUpTime && (
+                            <Button
+                              size="sm"
+                              className="bg-primary text-primary-foreground hover:bg-primary/90 text-xs font-medium h-8 shrink-0 flex items-center gap-1.5"
+                              onClick={() => handleMarkAsPickedUp(booking.bookingId)}
+                              disabled={actionLoading}
+                            >
+                              {actionLoading ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <Check className="h-3.5 w-3.5" />
+                              )}
+                              Confirm Pick-up
+                            </Button>
+                          )}
+                        </div>
+
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                              <Camera className="h-3.5 w-3.5 text-primary" />
+                              Initial Vehicle Condition Images
+                            </h4>
+                            {/* Hidden file input */}
+                            <label className="cursor-pointer">
+                              <span className="inline-flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 font-medium transition-colors bg-primary/10 hover:bg-primary/15 px-2.5 py-1.5 rounded-md border border-primary/20">
+                                {uploadingBookingId === booking.bookingId ? (
+                                  <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                                ) : (
+                                  <Upload className="h-3 w-3 mr-1" />
+                                )}
+                                Upload Images
+                              </span>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                multiple
+                                className="hidden"
+                                disabled={uploadingBookingId !== null}
+                                onChange={(e) =>
+                                  handleUploadConditionImages(booking.bookingId, e.target.files)
+                                }
+                              />
+                            </label>
+                          </div>
+
+                          {/* Render DocumentViewer */}
+                          {booking.conditionImages && booking.conditionImages.length > 0 ? (
+                            <div className="bg-muted/10 p-3 rounded-lg border border-border/40">
+                              <DocumentViewer
+                                documents={booking.conditionImages}
+                                onDelete={(doc) =>
+                                  handleDeleteConditionImage(booking.bookingId, doc.documentId)
+                                }
+                                deletingId={deletingImageId}
+                                className="grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2"
+                              />
+                            </div>
+                          ) : (
+                            <div className="text-center py-6 border border-dashed border-border rounded-lg bg-muted/10">
+                              <ImageIcon className="h-8 w-8 mx-auto text-muted-foreground/50 mb-1.5" />
+                              <p className="text-xs text-muted-foreground font-medium">No condition images uploaded yet</p>
+                              <p className="text-[10px] text-muted-foreground/75 mt-0.5">
+                                Upload photos to document the vehicle's state before check-out
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               ))}

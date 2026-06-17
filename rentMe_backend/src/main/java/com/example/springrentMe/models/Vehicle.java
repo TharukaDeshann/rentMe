@@ -58,14 +58,8 @@ public class Vehicle {
     @Column(length = 1000)
     private String description;
 
-    // Stored as a comma-separated list of Cloudinary URLs or JSON array string
-    @Column(name = "pictures", columnDefinition = "TEXT")
-    private String pictures;
-
-    // Legal documents - stored as JSON string of URLs {"registration": "...",
-    // "insurance": "..."}
-    @Column(name = "legal_documents", columnDefinition = "TEXT")
-    private String legalDocuments;
+    @OneToMany(mappedBy = "vehicle", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<Document> documents;
 
     // Pickup location details
     @NotBlank(message = "Pickup location address is required")
@@ -100,6 +94,20 @@ public class Vehicle {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @Column(name = "average_rating")
+    private Double averageRating = 0.0;
+
+    @Column(name = "total_reviews")
+    private Long totalReviews = 0L;
+
+    public Double getAverageRating() {
+        return averageRating == null ? 0.0 : averageRating;
+    }
+
+    public Long getTotalReviews() {
+        return totalReviews == null ? 0L : totalReviews;
+    }
 
     // One vehicle can have many bookings (history), but only one active at a time
     @OneToMany(mappedBy = "vehicle", cascade = CascadeType.ALL, fetch = FetchType.LAZY)

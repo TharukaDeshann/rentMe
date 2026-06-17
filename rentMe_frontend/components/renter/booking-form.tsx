@@ -2,13 +2,15 @@
 
 import { useEffect, useState } from "react";
 import { X, Calendar, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
+import { formatLKR } from "@/utils/currency";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { createBooking, getVehicleById } from "@/services/booking.service";
+import bookingService from "@/services/booking.service";
+import vehicleService from "@/services/vehicle.service";
 import { Vehicle, Booking } from "@/types/booking";
 
 interface BookingFormProps {
@@ -40,7 +42,7 @@ export function BookingForm({ vehicle, vehicleId, onClose, onSuccess }: BookingF
       try {
         setVehicleLoading(true);
         setError(null);
-        const data = await getVehicleById(vehicleId);
+        const data = await vehicleService.getVehicleById(vehicleId);
         setCurrentVehicle(data);
       } catch (err: any) {
         setError(err.message || "Failed to load vehicle details.");
@@ -54,9 +56,13 @@ export function BookingForm({ vehicle, vehicleId, onClose, onSuccess }: BookingF
 
   const calculateDays = () => {
     if (!startDate || !endDate) return 0;
-    const diff =
-      new Date(endDate).getTime() - new Date(startDate).getTime();
-    return Math.ceil(diff / (1000 * 60 * 60 * 24));
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    start.setHours(0, 0, 0, 0);
+    end.setHours(0, 0, 0, 0);
+    const diffTime = end.getTime() - start.getTime();
+    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays + 1;
   };
 
   const days = calculateDays();
@@ -70,7 +76,7 @@ export function BookingForm({ vehicle, vehicleId, onClose, onSuccess }: BookingF
     try {
       setLoading(true);
       setError(null);
-      const booking = await createBooking({
+      const booking = await bookingService.createBooking({
         vehicleId: currentVehicle!.vehicleId,
         startDate,
         endDate,
@@ -120,7 +126,7 @@ export function BookingForm({ vehicle, vehicleId, onClose, onSuccess }: BookingF
                 {currentVehicle.make} {currentVehicle.model}
               </p>
               <p className="text-sm text-muted-foreground">
-                ${currentVehicle.dailyPrice}/day · {currentVehicle.pickupLocation}
+                {formatLKR(currentVehicle.dailyPrice)}/day · {currentVehicle.pickupLocation}
               </p>
             </div>
             )}
@@ -145,8 +151,8 @@ export function BookingForm({ vehicle, vehicleId, onClose, onSuccess }: BookingF
                 value={startDate}
                 onChange={(e) => {
                   setStartDate(e.target.value);
-                  // Reset end date if it's before new start date
-                  if (endDate && e.target.value >= endDate) setEndDate("");
+                  // Reset end date if it's after new start date
+                  if (endDate && e.target.value > endDate) setEndDate("");
                 }}
               />
             </div>
@@ -159,13 +165,7 @@ export function BookingForm({ vehicle, vehicleId, onClose, onSuccess }: BookingF
               </label>
               <Input
                 type="date"
-                min={
-                  startDate
-                    ? new Date(new Date(startDate).getTime() + 86400000)
-                        .toISOString()
-                        .split("T")[0]
-                    : today
-                }
+                min={startDate || today}
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
                 disabled={!startDate}
@@ -201,14 +201,14 @@ export function BookingForm({ vehicle, vehicleId, onClose, onSuccess }: BookingF
                       {days} {days === 1 ? "day" : "days"} ×
                     </span>
                     <span className="font-medium">
-                      ${currentVehicle.dailyPrice}/day
+                      {formatLKR(currentVehicle.dailyPrice)}/day
                     </span>
                   </div>
                   <div className="border-t border-border pt-2">
                     <div className="flex justify-between">
                       <span className="font-semibold">Estimated Total</span>
                       <span className="text-lg font-bold text-primary">
-                        ${totalPrice.toFixed(2)}
+                        {formatLKR(totalPrice)}
                       </span>
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">
