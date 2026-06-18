@@ -11,6 +11,15 @@ RUN npm ci
 # Copy all source code
 COPY . .
 
+# Declare build arguments passed by Railway and set them as environment variables for the Next.js build
+ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_GOOGLE_CLIENT_ID
+ARG NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+ENV NEXT_PUBLIC_GOOGLE_CLIENT_ID=${NEXT_PUBLIC_GOOGLE_CLIENT_ID}
+ENV NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=${NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}
+
 # Build the app for production
 RUN npm run build
 
