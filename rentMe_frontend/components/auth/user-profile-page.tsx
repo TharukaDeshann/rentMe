@@ -143,6 +143,7 @@ export function UserProfilePage({
   const [profileImage, setProfileImage] = useState(
     userProp?.profilePicture ?? initialData?.profilePicture ?? ""
   )
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null)
   const [formData, setFormData]   = useState(initialFormData)
   const [editData, setEditData]   = useState(initialFormData)
 
@@ -159,6 +160,7 @@ export function UserProfilePage({
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
+      setSelectedImageFile(file)
       const reader = new FileReader()
       reader.onload = (event) => {
         setProfileImage(event.target?.result as string)
@@ -174,6 +176,14 @@ export function UserProfilePage({
       const userId = userProp?.userId ?? Number(localStorage.getItem("user_id"))
       if (!userId) throw new Error("User not authenticated")
 
+      let finalUser = userProp;
+
+      if (selectedImageFile) {
+        finalUser = await userService.uploadProfilePicture(userId, selectedImageFile)
+        setProfileImage(finalUser.profilePicture ?? "")
+        setSelectedImageFile(null)
+      }
+
       const updatedUser = await userService.updateUser(userId, {
         fullName:      editData.fullName,
         email:         editData.email,
@@ -181,10 +191,15 @@ export function UserProfilePage({
         dateOfBirth:   editData.dateOfBirth || undefined,
       })
 
+      const combinedUser = {
+        ...updatedUser,
+        profilePicture: updatedUser.profilePicture || finalUser?.profilePicture,
+      }
+
       setFormData(editData)
       setIsEditing(false)
-      updateProfile(updatedUser)
-      onProfileUpdate?.(updatedUser)
+      updateProfile(combinedUser)
+      onProfileUpdate?.(combinedUser)
     } catch (err: any) {
       setError(err.message || "An error occurred while saving changes")
     } finally {
@@ -248,7 +263,13 @@ export function UserProfilePage({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => { setEditData(formData); setIsEditing(false); setError(""); }}
+                  onClick={() => {
+                    setEditData(formData);
+                    setIsEditing(false);
+                    setError("");
+                    setSelectedImageFile(null);
+                    setProfileImage(userProp?.profilePicture ?? initialData?.profilePicture ?? "");
+                  }}
                   disabled={isSaving}
                 >
                   Cancel

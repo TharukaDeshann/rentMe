@@ -40,4 +40,5 @@ export interface UpdateUserRequest {
   email?: string;
   contactNumber?: string;
   dateOfBirth?: string;
+  profilePicture?: string;
 }

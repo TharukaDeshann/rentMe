@@ -12,6 +12,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -75,6 +76,19 @@ public class UserController {
             @PathVariable Long userId,
             @Valid @RequestBody UpdateUserRequest request) {
         UserDTO updatedUser = userService.updateUser(userId, request);
+        return ResponseEntity.ok(updatedUser);
+    }
+
+    /**
+     * Upload profile picture
+     * Accessible by: The user themselves OR admin
+     */
+    @PreAuthorize("hasRole('ADMIN') or @userSecurity.isOwner(#userId)")
+    @PostMapping("/{userId}/profile-picture")
+    public ResponseEntity<UserDTO> uploadProfilePicture(
+            @PathVariable Long userId,
+            @RequestParam("file") MultipartFile file) {
+        UserDTO updatedUser = userService.uploadProfilePicture(userId, file);
         return ResponseEntity.ok(updatedUser);
     }
 

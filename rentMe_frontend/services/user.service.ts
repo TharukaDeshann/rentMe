@@ -89,6 +89,34 @@ export const reactivateUser = async (userId: number): Promise<{ message: string 
   }
 };
 
+/**
+ * Upload profile picture for a user
+ * @param userId - User ID
+ * @param file - File object to upload
+ * @returns Updated user profile containing the new profile picture URL
+ */
+export const uploadProfilePicture = async (
+  userId: number,
+  file: File,
+): Promise<User> => {
+  try {
+    const formData = new FormData();
+    formData.append("file", file);
+    const response = await apiClient.post<User>(
+      `/users/${userId}/profile-picture`,
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    throw new Error(getErrorMessage(error));
+  }
+};
+
 const userService = {
   getAllUsers,
   getCurrentUserProfile,
@@ -96,6 +124,7 @@ const userService = {
   updateUser,
   deleteUser,
   reactivateUser,
+  uploadProfilePicture,
 };
 
 export default userService;

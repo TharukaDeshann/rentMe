@@ -6,10 +6,16 @@ import com.example.springrentMe.DTOs.UpdateUserRequest;
 import com.example.springrentMe.DTOs.UserDTO;
 import com.example.springrentMe.models.*;
 import com.example.springrentMe.repositories.*;
+import com.example.springrentMe.services.storage.FileStorageService;
+import com.example.springrentMe.services.storage.FileValidationService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 import java.util.HashSet;
 import java.util.List;
@@ -37,6 +43,15 @@ public class UserService {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private FileStorageService fileStorageService;
+
+    @Autowired
+    private FileValidationService fileValidationService;
+
+    @Value("${app.server.base-url:http://localhost:8080}")
+    private String serverBaseUrl;
 
     /**
      * Get all users (Admin only)
@@ -170,6 +185,33 @@ public class UserService {
     }
 
     /**
+     * Upload profile picture for a user
+     */
+    @Transactional
+    public UserDTO uploadProfilePicture(Long userId, MultipartFile file) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+
+        // Validate file
+        fileValidationService.validate(file);
+
+        // Delete old profile picture if it was a local file to avoid cluttering storage
+        if (user.getProfilePicture() != null && !user.getProfilePicture().startsWith("http://") && !user.getProfilePicture().startsWith("https://")) {
+            fileStorageService.delete(user.getProfilePicture());
+        }
+
+        // Store new file
+        String folder = "users/" + userId + "/profile";
+        String fileRef = fileStorageService.store(file, folder);
+
+        // Update user
+        user.setProfilePicture(fileRef);
+        User updatedUser = userRepository.save(user);
+
+        return convertToDTO(updatedUser);
+    }
+
+    /**
      * Convert User entity to UserDTO
      */
     private UserDTO convertToDTO(User user) {
@@ -179,7 +221,21 @@ public class UserService {
         dto.setEmail(user.getEmail());
         dto.setContactNumber(user.getContactNumber());
         dto.setRole(user.getRole());
-        dto.setProfilePicture(user.getProfilePicture());
+        
+        if (user.getProfilePicture() != null) {
+            String pic = user.getProfilePicture();
+            if (pic.startsWith("http://") || pic.startsWith("https://")) {
+                dto.setProfilePicture(pic);
+            } else {
+                String[] parts = pic.split("/");
+                StringBuilder encoded = new StringBuilder();
+                for (int i = 0; i < parts.length; i++) {
+                    if (i > 0) encoded.append("/");
+                    encoded.append(URLEncoder.encode(parts[i], StandardCharsets.UTF_8).replace("+", "%20"));
+                }
+                dto.setProfilePicture(serverBaseUrl + "/api/v1/files/" + encoded.toString());
+            }
+        }
         dto.setDateOfBirth(user.getDateOfBirth());
         dto.setAuthProvider(user.getAuthProvider());
         dto.setEmailVerified(user.getEmailVerified());
