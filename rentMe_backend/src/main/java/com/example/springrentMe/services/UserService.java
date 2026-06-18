@@ -216,24 +216,33 @@ public class UserService {
      */
     private UserDTO convertToDTO(User user) {
         UserDTO dto = new UserDTO();
+        if (user == null) {
+            return dto;
+        }
         dto.setUserId(user.getUserId());
         dto.setFullName(user.getFullName());
         dto.setEmail(user.getEmail());
         dto.setContactNumber(user.getContactNumber());
-        dto.setRole(user.getRole());
+        if (user.getRole() != null) {
+            dto.setRole(user.getRole());
+        }
         
-        if (user.getProfilePicture() != null) {
+        if (user.getProfilePicture() != null && !user.getProfilePicture().trim().isEmpty()) {
             String pic = user.getProfilePicture();
             if (pic.startsWith("http://") || pic.startsWith("https://")) {
                 dto.setProfilePicture(pic);
             } else {
-                String[] parts = pic.split("/");
-                StringBuilder encoded = new StringBuilder();
-                for (int i = 0; i < parts.length; i++) {
-                    if (i > 0) encoded.append("/");
-                    encoded.append(URLEncoder.encode(parts[i], StandardCharsets.UTF_8).replace("+", "%20"));
+                try {
+                    String[] parts = pic.split("/");
+                    StringBuilder encoded = new StringBuilder();
+                    for (int i = 0; i < parts.length; i++) {
+                        if (i > 0) encoded.append("/");
+                        encoded.append(URLEncoder.encode(parts[i], StandardCharsets.UTF_8).replace("+", "%20"));
+                    }
+                    dto.setProfilePicture(serverBaseUrl + "/api/v1/files/" + encoded.toString());
+                } catch (Exception e) {
+                    dto.setProfilePicture(pic);
                 }
-                dto.setProfilePicture(serverBaseUrl + "/api/v1/files/" + encoded.toString());
             }
         }
         dto.setDateOfBirth(user.getDateOfBirth());
@@ -245,34 +254,64 @@ public class UserService {
 
         // Set all roles the user has
         Set<String> roles = new HashSet<>();
-        roles.add(user.getRole().name()); // Primary role
+        if (user.getRole() != null) {
+            roles.add(user.getRole().name()); // Primary role
+        }
 
-        if (renterRepository.existsByUser_UserId(user.getUserId())) {
-            roles.add("RENTER");
-        }
-        if (vehicleOwnerRepository.existsByUser_UserId(user.getUserId())) {
-            roles.add("VEHICLE_OWNER");
-        }
-        if (adminRepository.existsByUser_UserId(user.getUserId())) {
-            roles.add("ADMIN");
+        if (user.getUserId() != null) {
+            try {
+                if (renterRepository.existsByUser_UserId(user.getUserId())) {
+                    roles.add("RENTER");
+                }
+            } catch (Exception e) {
+                // Ignore or log
+            }
+            try {
+                if (vehicleOwnerRepository.existsByUser_UserId(user.getUserId())) {
+                    roles.add("VEHICLE_OWNER");
+                }
+            } catch (Exception e) {
+                // Ignore or log
+            }
+            try {
+                if (adminRepository.existsByUser_UserId(user.getUserId())) {
+                    roles.add("ADMIN");
+                }
+            } catch (Exception e) {
+                // Ignore or log
+            }
         }
         dto.setRoles(roles);
 
         // Set verification status for vehicle owners
-        vehicleOwnerRepository.findByUser_UserId(user.getUserId())
-                .ifPresent(owner -> dto.setVerificationStatus(owner.getVerificationStatus().name()));
+        if (user.getUserId() != null) {
+            try {
+                vehicleOwnerRepository.findByUser_UserId(user.getUserId())
+                        .ifPresent(owner -> {
+                            if (owner.getVerificationStatus() != null) {
+                                dto.setVerificationStatus(owner.getVerificationStatus().name());
+                            }
+                        });
+            } catch (Exception e) {
+                // Ignore or log
+            }
+        }
 
         // Set location if exists
-        if (user.getLocation() != null) {
-            LocationDTO locationDTO = new LocationDTO();
-            locationDTO.setLocationId(user.getLocation().getLocationId());
-            locationDTO.setAddress(user.getLocation().getAddress());
-            locationDTO.setLatitude(user.getLocation().getLatitude());
-            locationDTO.setLongitude(user.getLocation().getLongitude());
-            locationDTO.setCity(user.getLocation().getCity());
-            locationDTO.setCountry(user.getLocation().getCountry());
-            locationDTO.setPlaceId(user.getLocation().getPlaceId());
-            dto.setLocation(locationDTO);
+        try {
+            if (user.getLocation() != null) {
+                LocationDTO locationDTO = new LocationDTO();
+                locationDTO.setLocationId(user.getLocation().getLocationId());
+                locationDTO.setAddress(user.getLocation().getAddress());
+                locationDTO.setLatitude(user.getLocation().getLatitude());
+                locationDTO.setLongitude(user.getLocation().getLongitude());
+                locationDTO.setCity(user.getLocation().getCity());
+                locationDTO.setCountry(user.getLocation().getCountry());
+                locationDTO.setPlaceId(user.getLocation().getPlaceId());
+                dto.setLocation(locationDTO);
+            }
+        } catch (Exception e) {
+            // Ignore or log (prevents lazy-load failures from crashing the whole user list)
         }
 
         return dto;
