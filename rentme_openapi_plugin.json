@@ -1,0 +1,1350 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "RentMe API",
+    "description": "RentMe peer-to-peer vehicle rental platform API. Authentication: All endpoints except public vehicle browsing require a JWT Bearer token. To get a token call POST /auth/login with email and password and include the returned token in the Authorization header as 'Bearer <token>'. Roles: RENTER, VEHICLE_OWNER, ADMIN.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://rentme-production-6604.up.railway.app/api/v1",
+      "description": "RentMe Production Server"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "VehicleResponse": {
+        "type": "object",
+        "properties": {
+          "vehicleId": { "type": "integer", "example": 2 },
+          "make": { "type": "string", "example": "Toyota" },
+          "model": { "type": "string", "example": "Camry" },
+          "type": { "type": "string", "enum": ["SEDAN", "SUV", "VAN", "TRUCK", "BIKE", "OTHER"], "example": "SEDAN" },
+          "capacity": { "type": "integer", "example": 5 },
+          "dailyPrice": { "type": "number", "example": 49.99 },
+          "description": { "type": "string", "example": "Well maintained sedan" },
+          "pictures": { "type": "array", "items": { "type": "string" } },
+          "pickupLocation": { "type": "string", "example": "No 45, Galle Road, Colombo 03" },
+          "latitude": { "type": "number", "example": 6.8924 },
+          "longitude": { "type": "number", "example": 79.8572 },
+          "isAvailable": { "type": "boolean", "example": true },
+          "isListed": { "type": "boolean", "example": true },
+          "averageRating": { "type": "number", "example": 4.5 },
+          "totalReviews": { "type": "integer", "example": 10 },
+          "vehicleOwnerId": { "type": "integer", "example": 2 },
+          "ownerName": { "type": "string", "example": "Vehicle Owner" },
+          "ownerEmail": { "type": "string", "example": "owner@example.com" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "BookingResponse": {
+        "type": "object",
+        "properties": {
+          "bookingId": { "type": "integer", "example": 9 },
+          "status": { "type": "string", "enum": ["PENDING", "APPROVED", "CANCELLED", "ONGOING", "COMPLETED"], "example": "APPROVED" },
+          "startDate": { "type": "string", "format": "date", "example": "2026-06-25" },
+          "endDate": { "type": "string", "format": "date", "example": "2026-06-30" },
+          "numberOfDays": { "type": "integer", "example": 5 },
+          "dailyPrice": { "type": "number", "example": 49.99 },
+          "totalAmount": { "type": "number", "example": 249.95 },
+          "notes": { "type": "string", "example": "Please have car ready by 8 AM" },
+          "cancellationReason": { "type": "string" },
+          "vehicleId": { "type": "integer", "example": 2 },
+          "vehicleMake": { "type": "string", "example": "Toyota" },
+          "vehicleModel": { "type": "string", "example": "Camry" },
+          "vehicleType": { "type": "string", "example": "SEDAN" },
+          "vehiclePickupLocation": { "type": "string" },
+          "vehiclePictures": { "type": "array", "items": { "type": "string" } },
+          "renterId": { "type": "integer" },
+          "renterName": { "type": "string" },
+          "renterEmail": { "type": "string" },
+          "vehicleOwnerId": { "type": "integer" },
+          "ownerName": { "type": "string" },
+          "ownerEmail": { "type": "string" },
+          "actualPickUpTime": { "type": "string", "format": "date-time" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "example": false },
+          "message": { "type": "string", "example": "Error description" }
+        }
+      }
+    }
+  },
+  "security": [
+    { "bearerAuth": [] }
+  ],
+  "paths": {
+    "/auth/login": {
+      "post": {
+        "operationId": "login",
+        "summary": "Login with email and password",
+        "description": "Authenticate a user and receive a JWT token. Call this first before any protected endpoint. Returns userId, email, and role.",
+        "security": [],
+        "tags": ["Authentication"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email": { "type": "string", "format": "email", "example": "renter@example.com" },
+                  "password": { "type": "string", "example": "Password@123" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "message": { "type": "string", "example": "Login successful" },
+                    "userId": { "type": "integer", "example": 30 },
+                    "email": { "type": "string", "example": "renter@example.com" },
+                    "role": { "type": "string", "example": "RENTER" }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Invalid credentials" }
+        }
+      }
+    },
+    "/auth/register": {
+      "post": {
+        "operationId": "register",
+        "summary": "Register a new user account",
+        "description": "Register a new user. Role must be RENTER or VEHICLE_OWNER. ADMIN accounts cannot be self-registered.",
+        "security": [],
+        "tags": ["Authentication"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["fullName", "email", "password", "role"],
+                "properties": {
+                  "fullName": { "type": "string", "example": "John Doe" },
+                  "email": { "type": "string", "format": "email", "example": "john@example.com" },
+                  "password": { "type": "string", "example": "Password@123", "description": "Min 8 chars with uppercase, lowercase, digit, and special char" },
+                  "role": { "type": "string", "enum": ["RENTER", "VEHICLE_OWNER"], "example": "RENTER" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Registration successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "userId": { "type": "integer" },
+                    "email": { "type": "string" },
+                    "role": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Validation error or email already in use" }
+        }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "operationId": "logout",
+        "summary": "Logout and clear authentication",
+        "tags": ["Authentication"],
+        "responses": {
+          "200": {
+            "description": "Logout successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "message": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/public/vehicles": {
+      "get": {
+        "operationId": "listAvailableVehicles",
+        "summary": "Browse available vehicles",
+        "description": "List all available and listed vehicles. No authentication required. Filter by type or maximum daily price.",
+        "security": [],
+        "tags": ["Public - Vehicles"],
+        "parameters": [
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "description": "Filter by vehicle type",
+            "schema": { "type": "string", "enum": ["SEDAN", "SUV", "VAN", "TRUCK", "BIKE", "OTHER"] }
+          },
+          {
+            "name": "maxPrice",
+            "in": "query",
+            "required": false,
+            "description": "Filter by maximum daily price",
+            "schema": { "type": "number", "example": 5000 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of available vehicles",
+            "content": {
+              "application/json": {
+                "schema": { "type": "array", "items": { "$ref": "#/components/schemas/VehicleResponse" } }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/public/vehicles/{vehicleId}": {
+      "get": {
+        "operationId": "getVehicleById",
+        "summary": "Get details of a specific vehicle",
+        "description": "Get full details of a single vehicle by ID. No authentication required.",
+        "security": [],
+        "tags": ["Public - Vehicles"],
+        "parameters": [
+          {
+            "name": "vehicleId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "example": 2 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Vehicle details",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/VehicleResponse" }
+              }
+            }
+          },
+          "404": { "description": "Vehicle not found" }
+        }
+      }
+    },
+    "/public/vehicles/map": {
+      "get": {
+        "operationId": "getVehiclesForMap",
+        "summary": "Get vehicles within a map bounding box",
+        "description": "Returns vehicles within the specified latitude and longitude bounding box. Useful for map-based search.",
+        "security": [],
+        "tags": ["Public - Vehicles"],
+        "parameters": [
+          { "name": "minLat", "in": "query", "required": true, "schema": { "type": "number", "example": 6.0 } },
+          { "name": "maxLat", "in": "query", "required": true, "schema": { "type": "number", "example": 7.0 } },
+          { "name": "minLng", "in": "query", "required": true, "schema": { "type": "number", "example": 79.8 } },
+          { "name": "maxLng", "in": "query", "required": true, "schema": { "type": "number", "example": 80.0 } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Vehicles within the bounding box",
+            "content": {
+              "application/json": {
+                "schema": { "type": "array", "items": { "$ref": "#/components/schemas/VehicleResponse" } }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/public/vehicles/{vehicleId}/documents": {
+      "get": {
+        "operationId": "getVehicleDocumentsPublic",
+        "summary": "Get public documents for a vehicle",
+        "description": "Get all documents such as pictures and registration for a vehicle. No authentication required.",
+        "security": [],
+        "tags": ["Public - Vehicles"],
+        "parameters": [
+          { "name": "vehicleId", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of vehicle documents",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "documentId": { "type": "integer" },
+                      "documentType": { "type": "string" },
+                      "documentName": { "type": "string" },
+                      "fileUrl": { "type": "string" },
+                      "contentType": { "type": "string" },
+                      "fileSize": { "type": "integer" },
+                      "uploadedAt": { "type": "string", "format": "date-time" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/public/reviews/vehicle/{vehicleId}": {
+      "get": {
+        "operationId": "getReviewsByVehicle",
+        "summary": "Get all reviews for a vehicle",
+        "description": "Retrieve all reviews posted for a specific vehicle. No authentication required.",
+        "security": [],
+        "tags": ["Public - Reviews"],
+        "parameters": [
+          { "name": "vehicleId", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of reviews",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "reviewId": { "type": "integer" },
+                      "bookingId": { "type": "integer" },
+                      "vehicleId": { "type": "integer" },
+                      "rating": { "type": "integer", "minimum": 1, "maximum": 5 },
+                      "comment": { "type": "string" },
+                      "reviewerName": { "type": "string" },
+                      "createdAt": { "type": "string", "format": "date-time" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/public/reviews/vehicle/{vehicleId}/summary": {
+      "get": {
+        "operationId": "getVehicleReviewSummary",
+        "summary": "Get review summary for a vehicle",
+        "description": "Get average rating and total review count for a specific vehicle. No authentication required.",
+        "security": [],
+        "tags": ["Public - Reviews"],
+        "parameters": [
+          { "name": "vehicleId", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Review summary",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "vehicleId": { "type": "integer" },
+                    "averageRating": { "type": "number" },
+                    "totalReviews": { "type": "integer" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/public/reviews/owner/{ownerId}/average": {
+      "get": {
+        "operationId": "getOwnerAverageRating",
+        "summary": "Get average rating for a vehicle owner",
+        "description": "Get aggregate average rating for an owner across all their vehicles. No authentication required.",
+        "security": [],
+        "tags": ["Public - Reviews"],
+        "parameters": [
+          { "name": "ownerId", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Average rating as a decimal number",
+            "content": {
+              "application/json": {
+                "schema": { "type": "number", "example": 4.7 }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bookings": {
+      "post": {
+        "operationId": "createBooking",
+        "summary": "Create a booking request",
+        "description": "Renter submits a booking request for a vehicle. Vehicle must be available and listed. Total amount is calculated server-side. Booking starts in PENDING status until owner approves.",
+        "tags": ["Bookings - Renter"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["vehicleId", "startDate", "endDate"],
+                "properties": {
+                  "vehicleId": { "type": "integer", "example": 2, "description": "ID of the vehicle to book" },
+                  "startDate": { "type": "string", "format": "date", "example": "2026-07-01", "description": "Must be today or a future date" },
+                  "endDate": { "type": "string", "format": "date", "example": "2026-07-05", "description": "Must be in the future and after startDate" },
+                  "notes": { "type": "string", "example": "Please have the car ready by 8 AM", "description": "Optional notes to the owner, max 500 characters" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Booking created successfully in PENDING status",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/BookingResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error or vehicle not available",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bookings/my": {
+      "get": {
+        "operationId": "getMyBookingsAsRenter",
+        "summary": "Get my bookings as renter",
+        "description": "Renter retrieves all their own bookings across all vehicles.",
+        "tags": ["Bookings - Renter"],
+        "responses": {
+          "200": {
+            "description": "List of the renter's bookings",
+            "content": {
+              "application/json": {
+                "schema": { "type": "array", "items": { "$ref": "#/components/schemas/BookingResponse" } }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bookings/{bookingId}": {
+      "get": {
+        "operationId": "getBookingById",
+        "summary": "Get a single booking by ID",
+        "description": "Get full details of a booking. Accessible by the renter who made it, the vehicle owner, or an admin.",
+        "tags": ["Bookings - Renter"],
+        "parameters": [
+          { "name": "bookingId", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Booking details",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/BookingResponse" }
+              }
+            }
+          },
+          "403": { "description": "Access denied" }
+        }
+      }
+    },
+    "/bookings/{bookingId}/cancel": {
+      "patch": {
+        "operationId": "renterCancelBooking",
+        "summary": "Cancel a booking as renter",
+        "description": "Renter cancels their own PENDING booking.",
+        "tags": ["Bookings - Renter"],
+        "parameters": [
+          { "name": "bookingId", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "cancellationReason": { "type": "string", "example": "Change of plans" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Booking cancelled",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/BookingResponse" }
+              }
+            }
+          },
+          "400": { "description": "Cannot cancel this booking" }
+        }
+      }
+    },
+    "/owner/bookings": {
+      "get": {
+        "operationId": "getOwnerBookings",
+        "summary": "Get all bookings for owner's vehicles",
+        "description": "Vehicle owner retrieves all bookings made on any of their vehicles.",
+        "tags": ["Bookings - Owner"],
+        "responses": {
+          "200": {
+            "description": "List of bookings on owner's vehicles",
+            "content": {
+              "application/json": {
+                "schema": { "type": "array", "items": { "$ref": "#/components/schemas/BookingResponse" } }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/owner/bookings/pending": {
+      "get": {
+        "operationId": "getPendingBookingRequests",
+        "summary": "Get pending booking requests as owner",
+        "description": "Vehicle owner retrieves only PENDING booking requests awaiting their approve or reject decision.",
+        "tags": ["Bookings - Owner"],
+        "responses": {
+          "200": {
+            "description": "List of pending booking requests",
+            "content": {
+              "application/json": {
+                "schema": { "type": "array", "items": { "$ref": "#/components/schemas/BookingResponse" } }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/owner/bookings/{bookingId}/status": {
+      "patch": {
+        "operationId": "ownerUpdateBookingStatus",
+        "summary": "Approve or reject a booking as owner",
+        "description": "Vehicle owner approves or rejects a PENDING booking. APPROVED makes the vehicle unavailable for booked dates. CANCELLED rejects the request.",
+        "tags": ["Bookings - Owner"],
+        "parameters": [
+          { "name": "bookingId", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["newStatus"],
+                "properties": {
+                  "newStatus": { "type": "string", "enum": ["APPROVED", "CANCELLED"], "example": "APPROVED" },
+                  "cancellationReason": { "type": "string", "description": "Required when newStatus is CANCELLED" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Booking status updated",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/BookingResponse" }
+              }
+            }
+          },
+          "400": { "description": "Invalid status transition or booking not found" }
+        }
+      }
+    },
+    "/owner/bookings/{bookingId}/pickup": {
+      "patch": {
+        "operationId": "markAsPickedUp",
+        "summary": "Mark booking as picked up",
+        "description": "Owner marks an APPROVED booking as picked up. Records the actual pickup time.",
+        "tags": ["Bookings - Owner"],
+        "parameters": [
+          { "name": "bookingId", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Pickup recorded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "bookingId": { "type": "integer" },
+                    "actualPickUpTime": { "type": "string", "format": "date-time" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/owner/vehicles": {
+      "get": {
+        "operationId": "getMyVehicles",
+        "summary": "Get my vehicle listings as owner",
+        "description": "Vehicle owner retrieves all their vehicle listings including listed and unlisted.",
+        "tags": ["Vehicles - Owner"],
+        "responses": {
+          "200": {
+            "description": "Owner's vehicle listings",
+            "content": {
+              "application/json": {
+                "schema": { "type": "array", "items": { "$ref": "#/components/schemas/VehicleResponse" } }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createVehicle",
+        "summary": "Create a new vehicle listing",
+        "description": "Vehicle owner creates a new vehicle listing. Owner must have APPROVED verification status before listing vehicles.",
+        "tags": ["Vehicles - Owner"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["make", "model", "type", "capacity", "dailyPrice", "pickupLocation", "latitude", "longitude"],
+                "properties": {
+                  "make": { "type": "string", "example": "Toyota", "description": "Vehicle make or brand" },
+                  "model": { "type": "string", "example": "Camry", "description": "Vehicle model name" },
+                  "type": { "type": "string", "enum": ["SEDAN", "SUV", "VAN", "TRUCK", "BIKE", "OTHER"], "example": "SEDAN" },
+                  "capacity": { "type": "integer", "example": 5, "description": "Number of seats from 1 to 50" },
+                  "dailyPrice": { "type": "number", "example": 49.99, "description": "Price per day" },
+                  "description": { "type": "string", "example": "Well maintained sedan, perfect for city trips" },
+                  "pickupLocation": { "type": "string", "example": "No 45, Galle Road, Colombo 03" },
+                  "latitude": { "type": "number", "example": 6.8924, "description": "GPS latitude between -90 and 90" },
+                  "longitude": { "type": "number", "example": 79.8572, "description": "GPS longitude between -180 and 180" },
+                  "isAvailable": { "type": "boolean", "example": true, "description": "Defaults to true on creation" },
+                  "isListed": { "type": "boolean", "example": true, "description": "Defaults to true on creation" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Vehicle created successfully",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/VehicleResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error or owner not verified",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/owner/vehicles/{vehicleId}": {
+      "put": {
+        "operationId": "updateVehicle",
+        "summary": "Update a vehicle listing",
+        "description": "Update vehicle details. Only the owning vehicle owner can update. All fields are replaced.",
+        "tags": ["Vehicles - Owner"],
+        "parameters": [
+          { "name": "vehicleId", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["make", "model", "type", "capacity", "dailyPrice", "pickupLocation", "latitude", "longitude"],
+                "properties": {
+                  "make": { "type": "string" },
+                  "model": { "type": "string" },
+                  "type": { "type": "string", "enum": ["SEDAN", "SUV", "VAN", "TRUCK", "BIKE", "OTHER"] },
+                  "capacity": { "type": "integer" },
+                  "dailyPrice": { "type": "number" },
+                  "description": { "type": "string" },
+                  "pickupLocation": { "type": "string" },
+                  "latitude": { "type": "number" },
+                  "longitude": { "type": "number" },
+                  "isAvailable": { "type": "boolean" },
+                  "isListed": { "type": "boolean" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Vehicle updated",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/VehicleResponse" }
+              }
+            }
+          },
+          "400": { "description": "Validation error or vehicle not found" }
+        }
+      },
+      "delete": {
+        "operationId": "deleteVehicle",
+        "summary": "Delete a vehicle listing",
+        "description": "Hard-delete a vehicle listing. Prefer using PATCH availability with isListed false to hide a vehicle without permanently removing it.",
+        "tags": ["Vehicles - Owner"],
+        "parameters": [
+          { "name": "vehicleId", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Vehicle deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "message": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/owner/vehicles/{vehicleId}/availability": {
+      "patch": {
+        "operationId": "updateVehicleAvailability",
+        "summary": "Toggle vehicle availability or listing status",
+        "description": "Manually toggle vehicle availability and or listing visibility without affecting bookings. Use isListed false to hide from public without deleting.",
+        "tags": ["Vehicles - Owner"],
+        "parameters": [
+          { "name": "vehicleId", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "isAvailable": { "type": "boolean", "example": false, "description": "If null the field is not changed" },
+                  "isListed": { "type": "boolean", "example": true, "description": "If null the field is not changed" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Availability updated",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/VehicleResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/reviews": {
+      "post": {
+        "operationId": "createReview",
+        "summary": "Post a review for a completed booking",
+        "description": "Renter posts a review for a completed booking. One review per booking. Rating must be between 1 and 5.",
+        "tags": ["Reviews"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["bookingId", "rating"],
+                "properties": {
+                  "bookingId": { "type": "integer", "example": 9 },
+                  "rating": { "type": "integer", "minimum": 1, "maximum": 5, "example": 5 },
+                  "comment": { "type": "string", "example": "Great vehicle, very comfortable!", "description": "Optional comment up to 2000 characters" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Review created successfully" },
+          "400": { "description": "Booking not completed or review already exists" }
+        }
+      }
+    },
+    "/reviews/{reviewId}": {
+      "delete": {
+        "operationId": "deleteReview",
+        "summary": "Delete a review",
+        "description": "Delete a review. Accessible by the review author or an admin.",
+        "tags": ["Reviews"],
+        "parameters": [
+          { "name": "reviewId", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Review deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "message": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/me": {
+      "get": {
+        "operationId": "getCurrentUserProfile",
+        "summary": "Get current authenticated user profile",
+        "description": "Get the authenticated user's own profile including role and verification status.",
+        "tags": ["Users"],
+        "responses": {
+          "200": {
+            "description": "Current user profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "userId": { "type": "integer" },
+                    "fullName": { "type": "string" },
+                    "email": { "type": "string" },
+                    "role": { "type": "string" },
+                    "isActive": { "type": "boolean" },
+                    "authProvider": { "type": "string" },
+                    "verificationStatus": { "type": "string" },
+                    "createdAt": { "type": "string", "format": "date-time" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/{userId}": {
+      "get": {
+        "operationId": "getUserById",
+        "summary": "Get user profile by ID",
+        "description": "Get a user's profile by ID. Accessible by the user themselves or an admin.",
+        "tags": ["Users"],
+        "parameters": [
+          { "name": "userId", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "User profile" },
+          "403": { "description": "Access denied" }
+        }
+      },
+      "put": {
+        "operationId": "updateUser",
+        "summary": "Update user profile",
+        "description": "Update user information. Accessible by the user themselves or an admin.",
+        "tags": ["Users"],
+        "parameters": [
+          { "name": "userId", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "fullName": { "type": "string" },
+                  "contactNumber": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "User updated successfully" }
+        }
+      },
+      "delete": {
+        "operationId": "deactivateUser",
+        "summary": "Deactivate a user account",
+        "description": "Soft-delete or deactivate a user account. The account is preserved but marked inactive.",
+        "tags": ["Users"],
+        "parameters": [
+          { "name": "userId", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Account deactivated" }
+        }
+      }
+    },
+    "/users/{userId}/reactivate": {
+      "post": {
+        "operationId": "reactivateUser",
+        "summary": "Reactivate a user account (admin only)",
+        "description": "Admin reactivates a previously deactivated user account.",
+        "tags": ["Users"],
+        "parameters": [
+          { "name": "userId", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Account reactivated" }
+        }
+      }
+    },
+    "/owner/verification/request": {
+      "post": {
+        "operationId": "submitVerificationRequest",
+        "summary": "Submit KYC verification request",
+        "description": "Vehicle owner submits identity documents for KYC verification. Accepts multipart form data with one or more files.",
+        "tags": ["Verification - Owner"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["files"],
+                "properties": {
+                  "files": {
+                    "type": "array",
+                    "items": { "type": "string", "format": "binary" },
+                    "description": "One or more document files in PDF, JPEG, or PNG format"
+                  },
+                  "documentTypes": {
+                    "type": "array",
+                    "items": { "type": "string", "enum": ["OWNER_NIC", "OWNER_DRIVING_LICENSE", "OWNER_OTHER"] },
+                    "description": "Document type for each file. Defaults to OWNER_OTHER."
+                  },
+                  "documentNames": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "description": "Human-readable labels for each file, for example NIC Front"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Verification request submitted successfully" },
+          "400": { "description": "Already has a pending request" }
+        }
+      }
+    },
+    "/owner/verification/latest": {
+      "get": {
+        "operationId": "getMyLatestVerificationRequest",
+        "summary": "Get latest verification request status",
+        "description": "Owner checks the current status of their most recent verification request: PENDING, APPROVED, or REJECTED.",
+        "tags": ["Verification - Owner"],
+        "responses": {
+          "200": {
+            "description": "Latest verification request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "requestId": { "type": "integer" },
+                    "status": { "type": "string", "enum": ["PENDING", "APPROVED", "REJECTED"] },
+                    "rejectionReason": { "type": "string" },
+                    "submittedAt": { "type": "string", "format": "date-time" },
+                    "reviewedAt": { "type": "string", "format": "date-time" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/owner/verification/history": {
+      "get": {
+        "operationId": "getVerificationHistory",
+        "summary": "Get full verification request history",
+        "description": "Owner views their full verification request history including all past requests.",
+        "tags": ["Verification - Owner"],
+        "responses": {
+          "200": { "description": "List of all verification requests" }
+        }
+      }
+    },
+    "/admin/verification/pending": {
+      "get": {
+        "operationId": "getPendingVerifications",
+        "summary": "Get pending verification queue (admin only)",
+        "description": "Admin views all verification requests currently in PENDING status awaiting review.",
+        "tags": ["Verification - Admin"],
+        "responses": {
+          "200": { "description": "List of pending verification requests" }
+        }
+      }
+    },
+    "/admin/verification/all": {
+      "get": {
+        "operationId": "getAllVerifications",
+        "summary": "Get all verification requests (admin only)",
+        "description": "Admin views all verification requests across all statuses.",
+        "tags": ["Verification - Admin"],
+        "responses": {
+          "200": { "description": "All verification requests" }
+        }
+      }
+    },
+    "/admin/verification/{id}/review": {
+      "post": {
+        "operationId": "reviewVerificationRequest",
+        "summary": "Approve or reject a KYC verification request (admin only)",
+        "description": "Admin approves or rejects an owner's KYC verification request. Approving sets owner verification status to APPROVED allowing them to list vehicles. Rejecting requires a reason.",
+        "tags": ["Verification - Admin"],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["approve"],
+                "properties": {
+                  "approve": { "type": "boolean", "example": true, "description": "true to approve, false to reject" },
+                  "rejectionReason": { "type": "string", "description": "Required when approve is false" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Verification request reviewed" },
+          "400": { "description": "Request not in PENDING status or missing rejection reason" }
+        }
+      }
+    },
+    "/admin/bookings": {
+      "get": {
+        "operationId": "getAllBookingsAdmin",
+        "summary": "Get all bookings on the platform (admin only)",
+        "description": "Admin retrieves all bookings across the entire platform.",
+        "tags": ["Bookings - Admin"],
+        "responses": {
+          "200": {
+            "description": "All platform bookings",
+            "content": {
+              "application/json": {
+                "schema": { "type": "array", "items": { "$ref": "#/components/schemas/BookingResponse" } }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/bookings/{bookingId}/status": {
+      "patch": {
+        "operationId": "adminUpdateBookingStatus",
+        "summary": "Update any booking status (admin only)",
+        "description": "Admin can change the status of any booking on the platform.",
+        "tags": ["Bookings - Admin"],
+        "parameters": [
+          { "name": "bookingId", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["newStatus"],
+                "properties": {
+                  "newStatus": { "type": "string", "enum": ["PENDING", "APPROVED", "CANCELLED", "ONGOING", "COMPLETED"] },
+                  "cancellationReason": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Booking status updated" }
+        }
+      }
+    },
+    "/admin/vehicles": {
+      "get": {
+        "operationId": "getAllVehiclesAdmin",
+        "summary": "Get all vehicles on the platform (admin only)",
+        "description": "Admin view of all vehicles regardless of listing or availability status.",
+        "tags": ["Vehicles - Admin"],
+        "responses": {
+          "200": {
+            "description": "All vehicles",
+            "content": {
+              "application/json": {
+                "schema": { "type": "array", "items": { "$ref": "#/components/schemas/VehicleResponse" } }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/vehicles/{vehicleId}": {
+      "delete": {
+        "operationId": "adminDeleteVehicle",
+        "summary": "Delete any vehicle listing (admin only)",
+        "description": "Admin hard-deletes any vehicle listing regardless of owner.",
+        "tags": ["Vehicles - Admin"],
+        "parameters": [
+          { "name": "vehicleId", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Vehicle deleted" }
+        }
+      }
+    },
+    "/admin/vehicles/{vehicleId}/availability": {
+      "patch": {
+        "operationId": "adminUpdateVehicleAvailability",
+        "summary": "Toggle any vehicle availability (admin only)",
+        "description": "Admin toggles listing or availability status of any vehicle on the platform.",
+        "tags": ["Vehicles - Admin"],
+        "parameters": [
+          { "name": "vehicleId", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "isAvailable": { "type": "boolean" },
+                  "isListed": { "type": "boolean" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Availability updated" }
+        }
+      }
+    },
+    "/users": {
+      "get": {
+        "operationId": "getAllUsers",
+        "summary": "Get all users (admin only)",
+        "description": "Admin retrieves all registered users on the platform.",
+        "tags": ["Users"],
+        "responses": {
+          "200": { "description": "All users" }
+        }
+      }
+    },
+    "/admin/reviews": {
+      "get": {
+        "operationId": "getAllReviewsAdmin",
+        "summary": "Get all reviews for moderation (admin only)",
+        "description": "Admin retrieves all reviews posted on the platform for moderation purposes.",
+        "tags": ["Reviews"],
+        "responses": {
+          "200": { "description": "All reviews" }
+        }
+      }
+    },
+    "/chat/sessions": {
+      "post": {
+        "operationId": "createOrGetChatSession",
+        "summary": "Create or retrieve a chat session",
+        "description": "Start a conversation with another user between a renter and an owner. If a session between these two users for this vehicle already exists it is returned instead of creating a duplicate.",
+        "tags": ["Chat"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["targetUserId"],
+                "properties": {
+                  "targetUserId": { "type": "integer", "example": 60, "description": "User ID of the person to chat with" },
+                  "vehicleId": { "type": "integer", "example": 2, "description": "Optional vehicle context for the chat" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Chat session created or retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "sessionId": { "type": "integer" },
+                    "sessionType": { "type": "string" },
+                    "otherUserId": { "type": "integer" },
+                    "otherUserFullName": { "type": "string" },
+                    "lastMessageAt": { "type": "string", "format": "date-time" },
+                    "unreadCount": { "type": "integer" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "getMyChatSessions",
+        "summary": "Get my chat sessions",
+        "description": "Get all chat sessions for the current user sorted by most recent message first.",
+        "tags": ["Chat"],
+        "parameters": [
+          { "name": "page", "in": "query", "required": false, "schema": { "type": "integer", "default": 0 } },
+          { "name": "size", "in": "query", "required": false, "schema": { "type": "integer", "default": 20 } }
+        ],
+        "responses": {
+          "200": { "description": "Paginated list of chat sessions" }
+        }
+      }
+    },
+    "/chat/sessions/{sessionId}/messages": {
+      "get": {
+        "operationId": "getChatMessages",
+        "summary": "Get messages in a chat session",
+        "description": "Retrieve paginated messages for a chat session ordered oldest first.",
+        "tags": ["Chat"],
+        "parameters": [
+          { "name": "sessionId", "in": "path", "required": true, "schema": { "type": "integer" } },
+          { "name": "page", "in": "query", "required": false, "schema": { "type": "integer", "default": 0 } },
+          { "name": "size", "in": "query", "required": false, "schema": { "type": "integer", "default": 50 } }
+        ],
+        "responses": {
+          "200": { "description": "Paginated messages" }
+        }
+      },
+      "post": {
+        "operationId": "sendChatMessage",
+        "summary": "Send a message in a chat session",
+        "description": "Send a text message in an existing chat session.",
+        "tags": ["Chat"],
+        "parameters": [
+          { "name": "sessionId", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["textContent"],
+                "properties": {
+                  "textContent": { "type": "string", "example": "Hello, is the vehicle still available?" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Message sent successfully" }
+        }
+      }
+    },
+    "/chat/sessions/{sessionId}/read": {
+      "patch": {
+        "operationId": "markSessionAsRead",
+        "summary": "Mark all messages in a session as read",
+        "description": "Mark all unread messages in a session as read for the current user.",
+        "tags": ["Chat"],
+        "parameters": [
+          { "name": "sessionId", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Messages marked as read" }
+        }
+      }
+    },
+    "/chat/unread-count": {
+      "get": {
+        "operationId": "getTotalUnreadCount",
+        "summary": "Get total unread message count",
+        "description": "Get the total number of unread messages across all chat sessions for the current user.",
+        "tags": ["Chat"],
+        "responses": {
+          "200": {
+            "description": "Total unread message count",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "unreadCount": { "type": "integer" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

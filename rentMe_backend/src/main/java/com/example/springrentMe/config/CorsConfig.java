@@ -13,19 +13,21 @@ import java.util.Arrays;
  * CORS (Cross-Origin Resource Sharing) Configuration
  * Allows frontend (running on different port/domain) to access backend APIs
  * Enables cookie-based authentication across origins
+ *
+ * TODO: TEMPORARY — allowedOriginPatterns is set to "*" to unblock Amazon Q Business
+ * integration testing. Restrict back to specific origins before production hardening.
  */
 @Configuration
 public class CorsConfig {
-
-    @Value("${FRONTEND_URL:http://localhost:3000}")
-    private String frontendUrl;
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // Allow frontend URL (important for OAuth2 redirects)
-        configuration.setAllowedOrigins(Arrays.asList(frontendUrl));
+        // TEMPORARY: allow any origin so Amazon Q Business (and other AWS services)
+        // can reach the backend without CORS rejections.
+        // setAllowedOriginPatterns supports wildcard + credentials; setAllowedOrigins does not.
+        configuration.setAllowedOriginPatterns(Arrays.asList("*"));
 
         // Allow credentials (cookies, authorization headers)
         configuration.setAllowCredentials(true);
