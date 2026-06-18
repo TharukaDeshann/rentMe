@@ -26,17 +26,11 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Separator } from "@/components/ui/separator";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { getAllUsers } from "@/services/user.service";
 import { createOrGetSession } from "@/services/chat.service";
 import { User, UserRole } from "@/types";
+import { UserProfileViewModal } from "@/components/modals/UserProfileViewModal";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -108,184 +102,7 @@ function getVerificationBadge(user: User) {
   );
 }
 
-// ─── User Detail Modal ────────────────────────────────────────────────────────
-
-interface UserDetailModalProps {
-  user: User | null;
-  onClose: () => void;
-  onSendMessage: (user: User) => void;
-  isSendingMessage: boolean;
-}
-
-function UserDetailModal({
-  user,
-  onClose,
-  onSendMessage,
-  isSendingMessage,
-}: UserDetailModalProps) {
-  if (!user) return null;
-
-  const isAdmin = user.role === UserRole.ADMIN;
-
-  return (
-    <Dialog open={!!user} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-lg w-full max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-3">
-            <Avatar className="h-11 w-11 border">
-              {user.profilePicture ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={user.profilePicture}
-                  alt={user.fullName}
-                  className="h-full w-full rounded-full object-cover"
-                />
-              ) : (
-                <AvatarFallback className="bg-primary/10 text-primary font-semibold text-sm">
-                  {getInitials(user.fullName)}
-                </AvatarFallback>
-              )}
-            </Avatar>
-            <div className="flex-1 min-w-0">
-              <p className="text-base font-semibold truncate">{user.fullName}</p>
-              <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                <Badge
-                  variant="outline"
-                  className={`text-[10px] px-1.5 py-0 ${getRoleColor(user.role)}`}
-                >
-                  {getRoleLabel(user.role)}
-                </Badge>
-                {getVerificationBadge(user)}
-                <span
-                  className={`inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full border ${
-                    user.isActive !== false
-                      ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400"
-                      : "bg-destructive/5 text-destructive border-destructive/20"
-                  }`}
-                >
-                  {user.isActive !== false ? (
-                    <><CheckCircle2 className="h-2.5 w-2.5" /> Active</>
-                  ) : (
-                    <><X className="h-2.5 w-2.5" /> Inactive</>
-                  )}
-                </span>
-              </div>
-            </div>
-          </DialogTitle>
-        </DialogHeader>
-
-        <div className="space-y-4 mt-2">
-          {/* Contact Info */}
-          <div className="grid gap-3">
-            <div className="flex items-center gap-3 text-sm">
-              <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
-              <div className="min-w-0">
-                <p className="text-xs text-muted-foreground">Email</p>
-                <p className="font-medium truncate">{user.email}</p>
-              </div>
-              {user.emailVerified && (
-                <span title="Email verified" className="ml-auto shrink-0">
-                  <BadgeCheck className="h-4 w-4 text-primary" />
-                </span>
-              )}
-            </div>
-
-            {user.contactNumber && (
-              <div className="flex items-center gap-3 text-sm">
-                <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Contact</p>
-                  <p className="font-medium">{user.contactNumber}</p>
-                </div>
-              </div>
-            )}
-
-            {user.dateOfBirth && (
-              <div className="flex items-center gap-3 text-sm">
-                <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Date of birth</p>
-                  <p className="font-medium">{formatDate(user.dateOfBirth)}</p>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <Separator />
-
-          {/* Account Meta */}
-          <div className="grid grid-cols-2 gap-3 text-sm">
-            <div>
-              <p className="text-xs text-muted-foreground">User ID</p>
-              <p className="font-mono font-medium text-foreground">#{user.userId}</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Auth Provider</p>
-              <p className="font-medium capitalize">{user.authProvider?.toLowerCase() ?? "—"}</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Member since</p>
-              <p className="font-medium">{formatDate(user.createdAt)}</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Last updated</p>
-              <p className="font-medium">{formatDate(user.updatedAt)}</p>
-            </div>
-          </div>
-
-          {/* Roles set */}
-          {user.roles && user.roles.length > 0 && (
-            <>
-              <Separator />
-              <div>
-                <p className="text-xs text-muted-foreground mb-2">All roles</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {user.roles.map((r) => (
-                    <Badge
-                      key={r}
-                      variant="outline"
-                      className={`text-xs ${getRoleColor(r)}`}
-                    >
-                      {getRoleLabel(r)}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            </>
-          )}
-
-          {/* Actions */}
-          {!isAdmin && (
-            <>
-              <Separator />
-              <Button
-                className="w-full gap-2"
-                onClick={() => onSendMessage(user)}
-                disabled={isSendingMessage || user.isActive === false}
-              >
-                {isSendingMessage ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <MessageSquare className="h-4 w-4" />
-                )}
-                Send Message
-              </Button>
-              {user.isActive === false && (
-                <p className="text-xs text-center text-muted-foreground">
-                  Cannot message an inactive user.
-                </p>
-              )}
-            </>
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-// ─── User Row ─────────────────────────────────────────────────────────────────
-
-interface UserRowProps {
+  interface UserRowProps {
   user: User;
   onViewDetails: (user: User) => void;
   onSendMessage: (user: User) => void;
@@ -296,7 +113,14 @@ function UserRow({ user, onViewDetails, onSendMessage, isSendingMessage }: UserR
   const isAdmin = user.role === UserRole.ADMIN;
 
   return (
-    <div className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors border-b border-border last:border-0">
+    <div
+      className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors border-b border-border last:border-0 cursor-pointer group"
+      onClick={() => onViewDetails(user)}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => e.key === 'Enter' && onViewDetails(user)}
+      title={`View ${user.fullName}'s profile`}
+    >
       {/* Avatar */}
       <Avatar className="h-9 w-9 shrink-0 border">
         {user.profilePicture ? (
@@ -349,13 +173,13 @@ function UserRow({ user, onViewDetails, onSendMessage, isSendingMessage }: UserR
       </span>
 
       {/* Actions */}
-      <div className="flex items-center gap-1 shrink-0">
+      <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
         {!isAdmin && (
           <Button
             variant="ghost"
             size="sm"
             className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
-            onClick={() => onSendMessage(user)}
+            onClick={(e) => { e.stopPropagation(); onSendMessage(user); }}
             disabled={isSendingMessage || user.isActive === false}
             title="Open chat with this user"
           >
@@ -371,7 +195,7 @@ function UserRow({ user, onViewDetails, onSendMessage, isSendingMessage }: UserR
           variant="ghost"
           size="sm"
           className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
-          onClick={() => onViewDetails(user)}
+          onClick={(e) => { e.stopPropagation(); onViewDetails(user); }}
           title="View user profile"
         >
           <UserIcon className="h-3.5 w-3.5" />
@@ -630,12 +454,14 @@ export function UserMonitor() {
         ))}
       </Tabs>
 
-      {/* User detail modal */}
-      <UserDetailModal
+      {/* User Profile View Modal */}
+      <UserProfileViewModal
         user={detailUser}
+        open={!!detailUser}
         onClose={() => setDetailUser(null)}
         onSendMessage={handleSendMessage}
         isSendingMessage={messagingUserId === detailUser?.userId}
+        showMessageButton={true}
       />
     </div>
   );

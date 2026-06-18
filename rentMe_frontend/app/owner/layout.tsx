@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts';
 import { useRouter } from 'next/navigation';
 import { UserRole } from '@/types';
-import { Car, LayoutDashboard, FileCheck, CheckCircle, LogOut, User, MessageSquare } from 'lucide-react';
+import { Car, LayoutDashboard, FileCheck, CheckCircle, LogOut, User, MessageSquare, ChevronDown } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -146,11 +146,17 @@ export default function OwnerLayout({ children }: { children: React.ReactNode })
             <span className="hidden sm:block text-sm text-muted-foreground truncate max-w-[180px]">
               {user.email}
             </span>
-            <Avatar className="h-8 w-8 ring-2 ring-primary/20">
-              <AvatarFallback className="text-xs font-semibold bg-primary text-primary-foreground">
-                {initials}
-              </AvatarFallback>
-            </Avatar>
+            <Link
+              href="/profile"
+              className="group flex items-center gap-1.5 rounded-full p-0.5 ring-2 ring-primary/20 hover:ring-primary/50 transition-all duration-200"
+              title="View my profile"
+            >
+              <Avatar className="h-8 w-8">
+                <AvatarFallback className="text-xs font-semibold bg-primary text-primary-foreground group-hover:bg-primary/90">
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
+            </Link>
             <Button
               variant="ghost"
               size="sm"

@@ -11,8 +11,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ArrowLeft, Car, Info, Wifi, WifiOff, Loader2 } from "lucide-react";
+import { ArrowLeft, Car, Info, Wifi, WifiOff, Loader2, UserCircle } from "lucide-react";
 import Link from "next/link";
+import { UserProfileViewModal } from "@/components/modals/UserProfileViewModal";
 
 interface ChatInterfaceProps {
   sessionId: number;
@@ -28,6 +29,7 @@ export function ChatInterface({ sessionId, onClose, readOnly = false }: ChatInte
   const [messages, setMessages] = useState<ChatMessageResponseDTO[]>([]);
   const [loadingSession, setLoadingSession] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
   
   // Pagination State
   const [page, setPage] = useState(0);
@@ -207,14 +209,24 @@ export function ChatInterface({ sessionId, onClose, readOnly = false }: ChatInte
             </Button>
           )}
 
-          <Avatar className="h-10 w-10 border shrink-0">
+          <Avatar
+            className="h-10 w-10 border shrink-0 cursor-pointer hover:ring-2 hover:ring-primary/40 transition-all duration-200"
+            onClick={() => setProfileModalOpen(true)}
+            title={`View ${otherName}'s profile`}
+          >
             <AvatarFallback className="bg-primary/10 text-primary font-medium">
               {getInitials(otherName)}
             </AvatarFallback>
           </Avatar>
           
           <div className="min-w-0">
-            <h3 className="font-bold text-sm text-foreground truncate">{otherName}</h3>
+            <button
+              className="font-bold text-sm text-foreground truncate hover:text-primary transition-colors text-left"
+              onClick={() => setProfileModalOpen(true)}
+              title={`View ${otherName}'s profile`}
+            >
+              {otherName}
+            </button>
             {/* Connection Indicator */}
             <div className="flex items-center gap-1 mt-0.5">
               {isConnected ? (
@@ -308,6 +320,15 @@ export function ChatInterface({ sessionId, onClose, readOnly = false }: ChatInte
       {/* Input */}
       {!readOnly && (
         <ChatMessageInput onSend={handleSendMessage} disabled={loadingSession} />
+      )}
+
+      {/* Other user's profile modal */}
+      {session && (
+        <UserProfileViewModal
+          userId={session.otherUserId}
+          open={profileModalOpen}
+          onClose={() => setProfileModalOpen(false)}
+        />
       )}
     </Card>
   );
