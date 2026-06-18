@@ -58,13 +58,13 @@ class AuthControllerTest {
         registerRequest = new RegisterRequest();
         registerRequest.setFullName("Test User");
         registerRequest.setEmail("test@example.com");
-        registerRequest.setPassword("password123");
+        registerRequest.setPassword("Password123!");
         registerRequest.setContactNumber("+1234567890");
         registerRequest.setRole(UserRole.RENTER);
 
         loginRequest = new LoginRequest();
         loginRequest.setEmail("test@example.com");
-        loginRequest.setPassword("password123");
+        loginRequest.setPassword("Password123!");
 
         googleLoginRequest = new GoogleLoginRequest();
         googleLoginRequest.setToken("mock-google-token");

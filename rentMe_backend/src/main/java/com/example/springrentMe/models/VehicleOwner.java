@@ -1,7 +1,6 @@
 package com.example.springrentMe.models;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -26,21 +25,24 @@ public class VehicleOwner {
     @JoinColumn(name = "user_id", nullable = false, unique = true)
     private User user;
 
-    // Store as JSON: {"idCardUrl": "...", "addressProofUrl": "...", "submittedAt":
-    // "..."}
-    // This field is MANDATORY for vehicle owners - they cannot be approved without
-    // documents
-    @NotBlank(message = "Verification documents are required for vehicle owners")
-    @Column(name = "verification_documents", columnDefinition = "TEXT")
-    private String verificationDocuments;
-
     // Track verification status - defaults to NOT_SUBMITTED, changes to PENDING
-    // when docs uploaded
+    // when docs are uploaded and a VerificationRequest is submitted
     @NotNull(message = "Verification status is required")
     @Enumerated(EnumType.STRING)
     @Column(name = "verification_status", nullable = false)
     private VerificationStatus verificationStatus = VerificationStatus.NOT_SUBMITTED;
 
-    @Column(name = "verification_notes")
-    private String verificationNotes; // Admin can add rejection reasons
+    @Column(name = "average_rating")
+    private Double averageRating = 0.0;
+
+    @Column(name = "total_reviews")
+    private Long totalReviews = 0L;
+
+    public Double getAverageRating() {
+        return averageRating == null ? 0.0 : averageRating;
+    }
+
+    public Long getTotalReviews() {
+        return totalReviews == null ? 0L : totalReviews;
+    }
 }

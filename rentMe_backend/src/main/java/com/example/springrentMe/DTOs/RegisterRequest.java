@@ -38,6 +38,9 @@ public class RegisterRequest {
     @Pattern(regexp = "^[+]?[0-9]{10,20}$", message = "Contact number must be 10-20 digits, optionally starting with +")
     private String contactNumber;
 
+    
+    private String dateOfBirth;
+
     // Role is optional during registration - defaults to RENTER in the service
     // layer
     // Users can upgrade to VEHICLE_OWNER later by submitting verification documents

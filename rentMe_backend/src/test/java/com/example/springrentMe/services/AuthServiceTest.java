@@ -4,11 +4,15 @@ import com.example.springrentMe.DTOs.AuthResponse;
 import com.example.springrentMe.DTOs.LoginRequest;
 import com.example.springrentMe.DTOs.RegisterRequest;
 import com.example.springrentMe.models.AuthProvider;
+import com.example.springrentMe.models.Admin;
 import com.example.springrentMe.models.Renter;
 import com.example.springrentMe.models.User;
 import com.example.springrentMe.models.UserRole;
+import com.example.springrentMe.models.VehicleOwner;
+import com.example.springrentMe.repositories.AdminRepository;
 import com.example.springrentMe.repositories.RenterRepository;
 import com.example.springrentMe.repositories.UserRepository;
+import com.example.springrentMe.repositories.VehicleOwnerRepository;
 import com.example.springrentMe.security.UserDetailsImpl;
 import com.example.springrentMe.utils.JwtTokenProvider;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,8 +26,6 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
-
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -39,6 +41,12 @@ class AuthServiceTest {
 
     @Mock
     private RenterRepository renterRepository;
+
+    @Mock
+    private VehicleOwnerRepository vehicleOwnerRepository;
+
+    @Mock
+    private AdminRepository adminRepository;
 
     @Mock
     private PasswordEncoder passwordEncoder;
@@ -104,6 +112,8 @@ class AuthServiceTest {
         verify(userRepository, times(1)).existsByEmail("test@example.com");
         verify(userRepository, times(1)).save(any(User.class));
         verify(renterRepository, times(1)).save(any(Renter.class));
+        verify(vehicleOwnerRepository, never()).save(any(VehicleOwner.class));
+        verify(adminRepository, never()).save(any(Admin.class));
         verify(jwtTokenProvider, times(1)).generateTokenFromUsername("test@example.com");
     }
 
@@ -218,6 +228,8 @@ class AuthServiceTest {
 
         // Assert
         verify(renterRepository, times(1)).save(any(Renter.class));
+        verify(vehicleOwnerRepository, never()).save(any(VehicleOwner.class));
+        verify(adminRepository, never()).save(any(Admin.class));
     }
 
     @Test

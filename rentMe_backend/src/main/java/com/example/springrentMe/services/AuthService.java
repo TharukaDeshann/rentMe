@@ -4,11 +4,16 @@ import com.example.springrentMe.DTOs.AuthResponse;
 import com.example.springrentMe.DTOs.LoginRequest;
 import com.example.springrentMe.DTOs.RegisterRequest;
 import com.example.springrentMe.models.AuthProvider;
+import com.example.springrentMe.models.Admin;
 import com.example.springrentMe.models.Renter;
 import com.example.springrentMe.models.User;
 import com.example.springrentMe.models.UserRole;
+import com.example.springrentMe.models.VehicleOwner;
+import com.example.springrentMe.models.VerificationStatus;
+import com.example.springrentMe.repositories.AdminRepository;
 import com.example.springrentMe.repositories.RenterRepository;
 import com.example.springrentMe.repositories.UserRepository;
+import com.example.springrentMe.repositories.VehicleOwnerRepository;
 import com.example.springrentMe.security.UserDetailsImpl;
 import com.example.springrentMe.utils.JwtTokenProvider;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
@@ -35,6 +40,10 @@ public class AuthService {
 
     private final RenterRepository renterRepository;
 
+    private final VehicleOwnerRepository vehicleOwnerRepository;
+
+    private final AdminRepository adminRepository;
+
     private final PasswordEncoder passwordEncoder;
 
     private final JwtTokenProvider jwtTokenProvider;
@@ -46,11 +55,15 @@ public class AuthService {
 
     public AuthService(UserRepository userRepository,
             RenterRepository renterRepository,
+            VehicleOwnerRepository vehicleOwnerRepository,
+            AdminRepository adminRepository,
             PasswordEncoder passwordEncoder,
             JwtTokenProvider jwtTokenProvider,
             AuthenticationManager authenticationManager) {
         this.userRepository = userRepository;
         this.renterRepository = renterRepository;
+        this.vehicleOwnerRepository = vehicleOwnerRepository;
+        this.adminRepository = adminRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtTokenProvider = jwtTokenProvider;
         this.authenticationManager = authenticationManager;
@@ -58,7 +71,7 @@ public class AuthService {
 
     /**
      * Register a new user with LOCAL authentication
-     * By default, every new user is registered as a RENTER
+     * Creates a role-specific record based on the requested role
      */
     @Transactional
     public AuthResponse register(RegisterRequest request) {
@@ -67,13 +80,15 @@ public class AuthService {
             throw new RuntimeException("Email already registered");
         }
 
+        UserRole requestedRole = request.getRole() != null ? request.getRole() : UserRole.RENTER;
+
         // Create new user
         User user = new User();
         user.setFullName(request.getFullName());
         user.setEmail(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword())); // Hash password
         user.setContactNumber(request.getContactNumber());
-        user.setRole(request.getRole());
+        user.setRole(requestedRole);
         user.setAuthProvider(AuthProvider.LOCAL);
         user.setIsActive(true);
         user.setEmailVerified(false); // Email verification can be added later
@@ -81,10 +96,21 @@ public class AuthService {
         // Save user to database
         User savedUser = userRepository.save(user);
 
-        // Create corresponding Renter record (every user is a renter by default)
-        Renter renter = new Renter();
-        renter.setUser(savedUser);
-        renterRepository.save(renter);
+        // Create role-specific record
+        if (requestedRole == UserRole.VEHICLE_OWNER) {
+            VehicleOwner vehicleOwner = new VehicleOwner();
+            vehicleOwner.setUser(savedUser);
+            vehicleOwner.setVerificationStatus(VerificationStatus.NOT_SUBMITTED);
+            vehicleOwnerRepository.save(vehicleOwner);
+        } else if (requestedRole == UserRole.ADMIN) {
+            Admin admin = new Admin();
+            admin.setUser(savedUser);
+            adminRepository.save(admin);
+        } else {
+            Renter renter = new Renter();
+            renter.setUser(savedUser);
+            renterRepository.save(renter);
+        }
 
         // Generate JWT token
         String token = jwtTokenProvider.generateTokenFromUsername(savedUser.getEmail());
@@ -158,10 +184,12 @@ public class AuthService {
             // 2. Check if user already exists
             Optional<User> existingUserOpt = userRepository.findByEmail(email);
             User user;
+            boolean isNewUser;
 
             if (existingUserOpt.isPresent()) {
                 // User exists - update their information if needed
                 user = existingUserOpt.get();
+                isNewUser = false;
 
                 // Update OAuth-related fields
                 if (user.getOauthId() == null) {
@@ -178,13 +206,13 @@ public class AuthService {
 
                 userRepository.save(user);
             } else {
-                // 3. Create new user with Google OAuth
+                // 3. Create new user with Google OAuth (role will be confirmed via role selection)
                 user = new User();
                 user.setFullName(name);
                 user.setEmail(email);
                 user.setPassword(null); // No password for OAuth users
-                user.setContactNumber(""); // Can be updated later in profile
-                user.setRole(UserRole.RENTER); // Default role
+                user.setContactNumber("0000000000"); // Placeholder - user can update later in profile
+                user.setRole(UserRole.RENTER); // Default role (will be updated if user picks VEHICLE_OWNER)
                 user.setAuthProvider(AuthProvider.GOOGLE);
                 user.setOauthId(googleId);
                 user.setProfilePicture(profilePicture);
@@ -194,26 +222,86 @@ public class AuthService {
                 // Save user to database
                 User savedUser = userRepository.save(user);
 
-                // Create corresponding Renter record
+                // Create default Renter record (will be replaced if user selects VEHICLE_OWNER)
                 Renter renter = new Renter();
                 renter.setUser(savedUser);
                 renterRepository.save(renter);
 
                 user = savedUser;
+                isNewUser = true;
             }
 
             // 4. Generate JWT token for the user
             String jwtToken = jwtTokenProvider.generateTokenFromUsername(user.getEmail());
 
-            // 5. Return response
+            // 5. Return response with isNewUser flag
             return new AuthResponse(
                     jwtToken,
                     user.getUserId(),
                     user.getEmail(),
-                    user.getRole().name());
+                    user.getRole().name(),
+                    isNewUser);
 
         } catch (Exception e) {
             throw new RuntimeException("Failed to authenticate with Google: " + e.getMessage(), e);
+        }
+    }
+
+
+    /**
+     * Generate a JWT token for a user identified by email.
+     * Used when refreshing cookies after role changes.
+     */
+    public String generateTokenForUser(String email) {
+        return jwtTokenProvider.generateTokenFromUsername(email);
+    }
+
+    /**
+     * Complete OAuth2 registration by assigning a role to a new Google user.
+     * Called when a new Google Sign-In user selects their role (RENTER or VEHICLE_OWNER).
+     *
+     * @param userId The ID of the user to update
+     * @param role   The selected role (RENTER or VEHICLE_OWNER)
+     */
+    @Transactional
+    public void completeOAuth2Registration(Long userId, UserRole role) {
+        // Only allow RENTER or VEHICLE_OWNER (not ADMIN) via self-selection
+        if (role == UserRole.ADMIN) {
+            throw new RuntimeException("Cannot self-assign ADMIN role");
+        }
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // Verify this is actually a Google OAuth user
+        if (user.getAuthProvider() != AuthProvider.GOOGLE) {
+            throw new RuntimeException("This endpoint is only for OAuth2 users");
+        }
+
+        // Update user's role
+        user.setRole(role);
+        userRepository.save(user);
+
+        // Create role-specific record if not already present
+        if (role == UserRole.VEHICLE_OWNER) {
+            boolean ownerExists = vehicleOwnerRepository.findByUser_UserId(user.getUserId()).isPresent();
+            if (!ownerExists) {
+                // Remove renter record if it exists
+                renterRepository.findByUser_UserId(user.getUserId()).ifPresent(renterRepository::delete);
+
+                VehicleOwner vehicleOwner = new VehicleOwner();
+                vehicleOwner.setUser(user);
+                vehicleOwner.setVerificationStatus(VerificationStatus.NOT_SUBMITTED);
+                vehicleOwnerRepository.save(vehicleOwner);
+            }
+        } else {
+            // RENTER
+            boolean renterExists = renterRepository.findByUser_UserId(user.getUserId()).isPresent();
+            if (!renterExists) {
+                Renter renter = new Renter();
+                renter.setUser(user);
+                renterRepository.save(renter);
+            }
         }
     }
 }

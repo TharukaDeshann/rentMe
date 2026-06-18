@@ -67,9 +67,11 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         // Check if user already exists
         Optional<User> userOptional = userRepository.findByEmail(oAuth2UserInfo.getEmail());
         User user;
+        boolean isNewUser;
 
         if (userOptional.isPresent()) {
             user = userOptional.get();
+            isNewUser = false;
 
             // Check if user registered with different provider
             if (!user.getAuthProvider().name().equals(registrationId.toUpperCase())) {
@@ -80,12 +82,17 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
             // Update existing user if needed
             user = updateExistingUser(user, oAuth2UserInfo);
         } else {
-            // Register new OAuth2 user
+            // Register new OAuth2 user (role will be set later via complete-registration endpoint)
             user = registerNewUser(registrationId, oAuth2UserInfo);
+            isNewUser = true;
         }
 
+        // Build attributes map with isNewUser flag for the success handler
+        java.util.Map<String, Object> attributes = new java.util.HashMap<>(oAuth2User.getAttributes());
+        attributes.put("isNewUser", isNewUser);
+
         // Return UserDetailsImpl which implements both UserDetails and OAuth2User
-        return UserDetailsImpl.create(user, oAuth2User.getAttributes());
+        return UserDetailsImpl.create(user, attributes);
     }
 
     private User registerNewUser(String registrationId, OAuth2UserInfo oAuth2UserInfo) {

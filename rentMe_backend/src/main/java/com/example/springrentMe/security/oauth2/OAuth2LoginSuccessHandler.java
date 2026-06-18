@@ -45,6 +45,10 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
                 OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
                 String email = oAuth2User.getAttribute("email");
 
+                // Check if this is a new user (flag set by CustomOAuth2UserService)
+                Boolean isNewUser = oAuth2User.getAttribute("isNewUser");
+                boolean newUser = Boolean.TRUE.equals(isNewUser);
+
                 // Find user in database (should exist - created by CustomOAuth2UserService)
                 User user = userRepository.findByEmail(email)
                                 .orElseThrow(() -> new RuntimeException("User not found after OAuth2 login"));
@@ -56,7 +60,8 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
                 CookieUtils.setAuthCookies(response, token, user);
 
                 // Redirect to frontend WITHOUT token in URL (SECURE)
-                String redirectUrl = frontendUrl + "/oauth2/redirect?success=true";
+                // Include isNewUser flag so frontend knows whether to show role selection
+                String redirectUrl = frontendUrl + "/oauth2/redirect?success=true&isNewUser=" + newUser;
                 getRedirectStrategy().sendRedirect(request, response, redirectUrl);
         }
 }
