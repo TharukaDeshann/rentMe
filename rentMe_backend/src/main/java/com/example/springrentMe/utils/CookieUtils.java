@@ -20,7 +20,7 @@ public class CookieUtils {
 
     // Cookie configuration
     private static final int COOKIE_MAX_AGE = 24 * 60 * 60; // 24 hours in seconds
-    private static final boolean IS_SECURE = false; // Set to true for production HTTPS
+    private static final boolean IS_SECURE = true;  // Must be true for SameSite=None cross-origin cookies
     private static final String COOKIE_PATH = "/";
 
     /**
@@ -50,11 +50,12 @@ public class CookieUtils {
      */
     private static Cookie createJwtCookie(String token) {
         Cookie cookie = new Cookie(JWT_COOKIE_NAME, token);
-        cookie.setHttpOnly(true); // Prevents JavaScript access (XSS protection)
-        cookie.setSecure(IS_SECURE); // Only sent over HTTPS in production
+        cookie.setHttpOnly(true);  // Prevents JavaScript access (XSS protection)
+        cookie.setSecure(IS_SECURE);
         cookie.setPath(COOKIE_PATH);
         cookie.setMaxAge(COOKIE_MAX_AGE);
-        cookie.setAttribute("SameSite", "Lax"); // CSRF protection
+        // SameSite=None required for cross-origin requests (frontend and backend on different domains)
+        cookie.setAttribute("SameSite", "None");
         return cookie;
     }
 
@@ -82,6 +83,7 @@ public class CookieUtils {
         cookie.setSecure(IS_SECURE);
         cookie.setPath(COOKIE_PATH);
         cookie.setMaxAge(COOKIE_MAX_AGE);
+        cookie.setAttribute("SameSite", "None"); // Required for cross-origin
         return cookie;
     }
 
@@ -97,7 +99,8 @@ public class CookieUtils {
         jwtCookie.setHttpOnly(true);
         jwtCookie.setSecure(IS_SECURE);
         jwtCookie.setPath(COOKIE_PATH);
-        jwtCookie.setMaxAge(0); // Delete cookie
+        jwtCookie.setMaxAge(0);
+        jwtCookie.setAttribute("SameSite", "None");
         response.addCookie(jwtCookie);
 
         // Clear user info cookie
@@ -105,7 +108,8 @@ public class CookieUtils {
         userInfoCookie.setHttpOnly(false);
         userInfoCookie.setSecure(IS_SECURE);
         userInfoCookie.setPath(COOKIE_PATH);
-        userInfoCookie.setMaxAge(0); // Delete cookie
+        userInfoCookie.setMaxAge(0);
+        userInfoCookie.setAttribute("SameSite", "None");
         response.addCookie(userInfoCookie);
     }
 
