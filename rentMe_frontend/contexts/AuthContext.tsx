@@ -8,7 +8,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { authService } from '@/services';
+import { authService, userService } from '@/services';
 import { UserRole, LoginRequest, RegisterRequest, AuthProvider as AuthProviderEnum } from '@/types';
 
 interface AuthUser {
@@ -26,7 +26,7 @@ interface AuthContextType {
   register: (userData: RegisterRequest) => Promise<void>;
   googleLogin: (token: string) => Promise<void>;
   logout: () => Promise<void>;
-  refreshUser: () => void;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -41,18 +41,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
 
   /**
-   * Initialize auth state from localStorage on mount
+   * Initialize auth state from localStorage on mount and sync with DB
    */
   useEffect(() => {
-    const initializeAuth = () => {
+    const initializeAuth = async () => {
       const currentUser = authService.getCurrentUser();
       if (currentUser) {
+        // Set initial state from localStorage immediately
         setUser({
           userId: currentUser.userId,
           email: currentUser.email,
           role: currentUser.role as UserRole,
           authProvider: currentUser.authProvider as AuthProviderEnum,
         });
+
+        // Run profile check in the background to sync DB updates (e.g., owner verification approval)
+        try {
+          const profile = await userService.getCurrentUserProfile();
+          if (profile.role !== currentUser.role) {
+            localStorage.setItem("user_role", profile.role);
+            setUser({
+              userId: profile.userId,
+              email: profile.email,
+              role: profile.role as UserRole,
+              authProvider: profile.authProvider as AuthProviderEnum,
+            });
+          }
+        } catch (err) {
+          console.error("Failed to sync user profile on mount:", err);
+        }
       }
       setIsLoading(false);
     };
@@ -61,20 +78,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   /**
-   * Refresh user data from localStorage
-   * Useful after updating profile
+   * Refresh user data from database and update local state
    */
-  const refreshUser = () => {
-    const currentUser = authService.getCurrentUser();
-    if (currentUser) {
+  const refreshUser = async () => {
+    try {
+      const profile = await userService.getCurrentUserProfile();
+      localStorage.setItem("user_id", profile.userId.toString());
+      localStorage.setItem("user_email", profile.email);
+      localStorage.setItem("user_role", profile.role);
+      if (profile.authProvider) {
+        localStorage.setItem("auth_provider", profile.authProvider);
+      }
+      
       setUser({
-        userId: currentUser.userId,
-        email: currentUser.email,
-        role: currentUser.role as UserRole,
-        authProvider: currentUser.authProvider as AuthProviderEnum,
+        userId: profile.userId,
+        email: profile.email,
+        role: profile.role as UserRole,
+        authProvider: profile.authProvider as AuthProviderEnum,
       });
-    } else {
-      setUser(null);
+    } catch (error) {
+      console.error("Failed to refresh user profile from API:", error);
+      // Fallback: sync from localStorage
+      const currentUser = authService.getCurrentUser();
+      if (currentUser) {
+        setUser({
+          userId: currentUser.userId,
+          email: currentUser.email,
+          role: currentUser.role as UserRole,
+          authProvider: currentUser.authProvider as AuthProviderEnum,
+        });
+      } else {
+        setUser(null);
+      }
     }
   };
 

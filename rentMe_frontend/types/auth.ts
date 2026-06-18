@@ -30,6 +30,7 @@ export interface AuthResponse {
   email: string;
   role: UserRole;
   authProvider?: AuthProvider;
+  isNewUser?: boolean; // true when user was just created via Google OAuth (needs role selection)
 }
 
 export interface ValidationError {

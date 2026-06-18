@@ -115,6 +115,7 @@ public class AuthController {
             responseBody.put("userId", authResponse.getUserId());
             responseBody.put("email", authResponse.getEmail());
             responseBody.put("role", authResponse.getRole());
+            responseBody.put("isNewUser", authResponse.isNewUser());
 
             return ResponseEntity.ok(responseBody);
         } catch (Exception e) {
@@ -129,6 +130,62 @@ public class AuthController {
     @GetMapping("/test")
     public ResponseEntity<String> test() {
         return ResponseEntity.ok("Auth endpoints are working!");
+    }
+
+    /**
+     * Complete OAuth2 registration - assign role to new Google user
+     * POST /api/v1/auth/oauth2/complete-registration
+     * Must be called when a new Google Sign-In user selects their role.
+     */
+    @PostMapping("/oauth2/complete-registration")
+    public ResponseEntity<?> completeOAuth2Registration(
+            @Valid @RequestBody com.example.springrentMe.DTOs.CompleteOAuth2RegistrationRequest request,
+            jakarta.servlet.http.HttpServletRequest httpRequest,
+            HttpServletResponse response) {
+        try {
+            // Get the authenticated user's ID from the user_info cookie
+            String userInfoCookie = null;
+            if (httpRequest.getCookies() != null) {
+                for (jakarta.servlet.http.Cookie cookie : httpRequest.getCookies()) {
+                    if ("user_info".equals(cookie.getName())) {
+                        userInfoCookie = cookie.getValue();
+                        break;
+                    }
+                }
+            }
+
+            if (userInfoCookie == null) {
+                return ResponseEntity.status(401).body("Not authenticated");
+            }
+
+            // Decode the URL-encoded cookie value and extract userId
+            String decoded = java.net.URLDecoder.decode(userInfoCookie, java.nio.charset.StandardCharsets.UTF_8);
+            // Parse userId from JSON: {"userId":123,"email":"...","role":"...","authProvider":"..."}
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            com.fasterxml.jackson.databind.JsonNode node = mapper.readTree(decoded);
+            Long userId = node.get("userId").asLong();
+
+            // Complete the registration by assigning the selected role
+            authService.completeOAuth2Registration(userId, request.getRole());
+
+            // Fetch updated user to refresh cookies with new role
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            // Refresh auth cookies with updated role info
+            String freshToken = authService.generateTokenForUser(user.getEmail());
+            CookieUtils.setAuthCookies(response, freshToken, user);
+
+            Map<String, Object> responseBody = new HashMap<>();
+            responseBody.put("success", true);
+            responseBody.put("message", "Registration completed");
+            responseBody.put("role", user.getRole().name());
+            responseBody.put("userId", user.getUserId());
+
+            return ResponseEntity.ok(responseBody);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Failed to complete registration: " + e.getMessage());
+        }
     }
 
     /**

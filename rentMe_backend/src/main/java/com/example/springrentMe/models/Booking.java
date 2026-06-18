@@ -9,6 +9,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Table(
@@ -66,6 +67,12 @@ public class Booking {
     @Size(max = 500)
     @Column(name = "cancellation_reason", length = 500)
     private String cancellationReason;
+
+    @Column(name = "actual_pick_up_time")
+    private LocalDateTime actualPickUpTime;
+
+    @OneToMany(mappedBy = "booking", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<Document> conditionImages;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

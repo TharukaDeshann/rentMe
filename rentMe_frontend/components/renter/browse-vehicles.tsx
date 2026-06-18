@@ -5,26 +5,24 @@ import {
   Search,
   MapPin,
   Users,
-  DollarSign,
-  Star,
-  Calendar,
-  MapPinIcon,
+  Tag,
   Loader2,
   AlertCircle,
 } from "lucide-react";
+import { formatLKR } from "@/utils/currency";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { getAvailableVehicles } from "@/services/booking.service";
-import { Vehicle, VehicleType } from "@/types/booking";
+import { getAvailableVehicles } from "@/services/vehicle.service";
+import { Vehicle, VehicleType, VEHICLE_TYPES } from "@/types/booking";
+import { VehicleMapView } from "@/components/renter/vehicle-map-view";
 
 interface BrowseVehiclesProps {
   onViewDetails: (vehicleId: number) => void;
 }
 
-const VEHICLE_TYPES: VehicleType[] = ["SEDAN", "SUV", "TRUCK", "VAN"];
 
 export function BrowseVehicles({ onViewDetails }: BrowseVehiclesProps) {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -34,7 +32,7 @@ export function BrowseVehicles({ onViewDetails }: BrowseVehiclesProps) {
   // Filter state
   const [searchLocation, setSearchLocation] = useState("");
   const [selectedType, setSelectedType] = useState<VehicleType | "">("");
-  const [priceRange, setPriceRange] = useState(200);
+  const [priceRange, setPriceRange] = useState(50000);
   const [view, setView] = useState<"list" | "map">("list");
 
   const fetchVehicles = useCallback(async () => {
@@ -43,7 +41,7 @@ export function BrowseVehicles({ onViewDetails }: BrowseVehiclesProps) {
       setError(null);
       const data = await getAvailableVehicles(
         selectedType || undefined,
-        priceRange < 200 ? priceRange : undefined
+        priceRange < 50000 ? priceRange : undefined
       );
       setVehicles(data);
     } catch (err: any) {
@@ -65,9 +63,9 @@ export function BrowseVehicles({ onViewDetails }: BrowseVehiclesProps) {
       .includes(searchLocation.toLowerCase());
   });
 
-  const firstPicture = (pictures?: string) => {
+  const firstPicture = (pictures?: string[] | string) => {
     if (!pictures) return "/placeholder.jpg";
-    // pictures can be a single URL or comma-separated list
+    if (Array.isArray(pictures)) return pictures[0] || "/placeholder.jpg";
     return pictures.split(",")[0].trim();
   };
 
@@ -136,14 +134,14 @@ export function BrowseVehicles({ onViewDetails }: BrowseVehiclesProps) {
             <div className="flex items-center justify-between">
               <label className="text-sm font-medium">Daily Price Range</label>
               <span className="text-sm font-semibold text-primary">
-                {priceRange >= 200 ? "Any" : `$${priceRange}`}
+                {priceRange >= 50000 ? "Any" : formatLKR(priceRange)}
               </span>
             </div>
             <input
               type="range"
-              min="0"
-              max="200"
-              step="5"
+              min="1000"
+              max="50000"
+              step="1000"
               value={priceRange}
               onChange={(e) => setPriceRange(Number(e.target.value))}
               className="w-full"
@@ -218,8 +216,8 @@ export function BrowseVehicles({ onViewDetails }: BrowseVehiclesProps) {
                       <span>{vehicle.capacity} Seats</span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <DollarSign className="h-4 w-4" />
-                      <span>${vehicle.dailyPrice} / day</span>
+                      <Tag className="h-4 w-4 text-muted-foreground" />
+                      <span>{formatLKR(vehicle.dailyPrice)} / day</span>
                     </div>
                   </div>
 
@@ -256,35 +254,10 @@ export function BrowseVehicles({ onViewDetails }: BrowseVehiclesProps) {
 
       {/* Map View */}
       {!loading && view === "map" && (
-        <Card className="border-0 shadow-sm">
-          <CardContent className="pt-6">
-            <div className="relative h-96 w-full rounded-lg bg-gradient-to-br from-primary/10 to-secondary/10">
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="space-y-2 text-center">
-                  <MapPinIcon className="mx-auto h-12 w-12 text-primary/50" />
-                  <p className="text-sm text-muted-foreground">
-                    {filteredVehicles.length} vehicles available in the area
-                  </p>
-                  <div className="flex flex-col gap-2">
-                    {filteredVehicles.slice(0, 3).map((vehicle) => (
-                      <button
-                        key={vehicle.vehicleId}
-                        onClick={() => onViewDetails(vehicle.vehicleId)}
-                        className="rounded-lg border border-border bg-card p-2 text-xs text-foreground hover:bg-muted text-left"
-                      >
-                        {vehicle.make} {vehicle.model} • $
-                        {vehicle.dailyPrice}/day •{" "}
-                        <span className="text-muted-foreground">
-                          {vehicle.pickupLocation}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <VehicleMapView
+          vehicles={filteredVehicles}
+          onViewDetails={onViewDetails}
+        />
       )}
     </div>
   );

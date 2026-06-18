@@ -1,19 +1,51 @@
-"use client"
+"use client";
 
-import { Button } from "@/components/ui/button"
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
-import { Car, MessageSquare, ChevronDown, Home, Map, Calendar, BarChart3, Users, Shield } from "lucide-react"
-import { useState } from "react"
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import {
+  Car,
+  MessageSquare,
+  ChevronDown,
+  Home,
+  Map,
+  Calendar,
+  BarChart3,
+  Users,
+  Shield,
+  Menu,
+  X,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
-type UserRole = "renter" | "owner" | "admin"
+type UserRole = "renter" | "owner" | "admin";
 
 interface AppNavbarProps {
-  currentRole: UserRole
-  userName: string
-  userImage?: string
-  onMessagesClick: () => void
-  onProfileClick: () => void
+  currentRole: UserRole;
+  userName: string;
+  userImage?: string;
+  onMessagesClick: () => void;
+  onProfileClick: () => void;
 }
+
+const NAV_BY_ROLE: Record<UserRole, { label: string; icon: React.ElementType }[]> = {
+  renter: [
+    { label: "Dashboard",       icon: Home },
+    { label: "Browse Vehicles", icon: Map },
+    { label: "My Bookings",     icon: Calendar },
+  ],
+  owner: [
+    { label: "Dashboard",  icon: Home },
+    { label: "My Vehicles",icon: Car },
+    { label: "Bookings",   icon: Calendar },
+  ],
+  admin: [
+    { label: "Dashboard",    icon: Home },
+    { label: "Users",        icon: Users },
+    { label: "Verification", icon: Shield },
+    { label: "Analytics",    icon: BarChart3 },
+  ],
+};
 
 export function AppNavbar({
   currentRole,
@@ -22,134 +54,102 @@ export function AppNavbar({
   onMessagesClick,
   onProfileClick,
 }: AppNavbarProps) {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const initials = userName
     .split(" ")
     .map((n) => n[0])
     .join("")
+    .slice(0, 2)
+    .toUpperCase();
 
-  const getNavLinks = () => {
-    switch (currentRole) {
-      case "renter":
-        return [
-          { label: "Dashboard", icon: Home, href: "#" },
-          { label: "Browse Vehicles", icon: Map, href: "#" },
-          { label: "My Bookings", icon: Calendar, href: "#" },
-        ]
-      case "owner":
-        return [
-          { label: "Dashboard", icon: Home, href: "#" },
-          { label: "My Vehicles", icon: Car, href: "#" },
-          { label: "Bookings", icon: Calendar, href: "#" },
-        ]
-      case "admin":
-        return [
-          { label: "Dashboard", icon: Home, href: "#" },
-          { label: "Users", icon: Users, href: "#" },
-          { label: "Verification", icon: Shield, href: "#" },
-          { label: "Analytics", icon: BarChart3, href: "#" },
-        ]
-      default:
-        return []
-    }
-  }
-
-  const navLinks = getNavLinks()
+  const navLinks = NAV_BY_ROLE[currentRole] ?? [];
 
   return (
-    <nav className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur-sm shadow-sm">
+    <nav className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur-md">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex h-16 items-center justify-between">
+        <div className="flex h-16 items-center gap-4">
           {/* Logo */}
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <div className="rounded-lg bg-primary p-2">
-              <Car className="h-5 w-5 text-primary-foreground" />
+          <div className="flex items-center gap-2 shrink-0">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary shadow-sm">
+              <Car className="h-4 w-4 text-primary-foreground" />
             </div>
-            <span className="hidden sm:block text-lg font-bold text-foreground">rentMe</span>
+            <span className="hidden sm:block text-[17px] font-bold tracking-tight text-foreground">
+              rentMe
+            </span>
           </div>
 
-          {/* Desktop Navigation Links */}
-          <div className="hidden md:flex items-center gap-1">
-            {navLinks.map((link) => (
-              <Button
-                key={link.label}
-                variant="ghost"
-                size="sm"
-                className="gap-2 text-muted-foreground hover:text-foreground transition-colors duration-200"
+          {/* Desktop nav */}
+          <div className="hidden md:flex items-center gap-0.5 ml-2">
+            {navLinks.map(({ label, icon: Icon }) => (
+              <button
+                key={label}
+                className="topnav-link"
               >
-                <link.icon className="h-4 w-4" />
-                <span className="text-sm">{link.label}</span>
-              </Button>
+                <Icon className="h-4 w-4" />
+                {label}
+              </button>
             ))}
           </div>
 
-          {/* Right Section - Actions */}
-          <div className="flex items-center gap-2 sm:gap-4">
-            {/* Messages Button */}
+          {/* Spacer */}
+          <div className="flex-1" />
+
+          {/* Right actions */}
+          <div className="flex items-center gap-1">
             <Button
               variant="ghost"
               size="icon"
               onClick={onMessagesClick}
-              className="text-muted-foreground hover:text-foreground hover:bg-muted transition-colors duration-200"
+              className="text-muted-foreground hover:text-foreground hover:bg-muted h-9 w-9"
               title="Messages"
             >
               <MessageSquare className="h-5 w-5" />
             </Button>
 
-            {/* Profile Button */}
             <Button
               variant="ghost"
               size="sm"
               onClick={onProfileClick}
-              className="gap-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors duration-200"
+              className="gap-2 text-muted-foreground hover:text-foreground hover:bg-muted h-9 px-2"
             >
-              <Avatar className="h-8 w-8">
-                <AvatarImage src={userImage || "/placeholder.svg"} alt={userName} />
-                <AvatarFallback className="text-xs font-semibold bg-primary text-primary-foreground">
+              <Avatar className="h-7 w-7">
+                <AvatarImage src={userImage} alt={userName} />
+                <AvatarFallback className="text-[11px] font-semibold bg-primary text-primary-foreground">
                   {initials}
                 </AvatarFallback>
               </Avatar>
-              <ChevronDown className="h-4 w-4 hidden sm:block" />
+              <ChevronDown className="h-3.5 w-3.5 hidden sm:block" />
             </Button>
 
-            {/* Mobile Menu Button */}
-            <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="md:hidden inline-flex items-center justify-center p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            {/* Mobile menu toggle */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden h-9 w-9 text-muted-foreground"
+              onClick={() => setMobileOpen(!mobileOpen)}
             >
-              <svg
-                className="h-6 w-6"
-                fill="none"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
+              {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </Button>
           </div>
         </div>
 
-        {/* Mobile Navigation Menu */}
-        {isMobileMenuOpen && (
-          <div className="md:hidden border-t border-border py-3 space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
-            {navLinks.map((link) => (
-              <Button
-                key={link.label}
-                variant="ghost"
-                size="sm"
-                className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors duration-200"
+        {/* Mobile dropdown */}
+        {mobileOpen && (
+          <div className="md:hidden border-t border-border py-2 space-y-0.5 animate-in fade-in slide-in-from-top-2 duration-150">
+            {navLinks.map(({ label, icon: Icon }) => (
+              <button
+                key={label}
+                className="topnav-link w-full justify-start"
+                onClick={() => setMobileOpen(false)}
               >
-                <link.icon className="h-4 w-4" />
-                <span className="text-sm">{link.label}</span>
-              </Button>
+                <Icon className="h-4 w-4" />
+                {label}
+              </button>
             ))}
           </div>
         )}
       </div>
     </nav>
-  )
+  );
 }

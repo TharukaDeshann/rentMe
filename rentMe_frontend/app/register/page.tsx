@@ -14,6 +14,7 @@ export default function RegisterPage() {
     email: string;
     phoneNumber: string;
     password: string;
+    role: 'RENTER' | 'VEHICLE_OWNER';
     dateOfBirth?: string;
   }) => {
     try {
@@ -22,7 +23,7 @@ export default function RegisterPage() {
         email: formData.email,
         password: formData.password,
         contactNumber: formData.phoneNumber,
-        role: 'RENTER' as any,
+        role: formData.role as any,
         dateOfBirth: formData.dateOfBirth,
       };
 

@@ -49,6 +49,9 @@ export const registrationSchema = z.object({
     ),
   confirmPassword: z.string(),
   dateOfBirth: z.string().optional(),
+  role: z.enum(['RENTER', 'VEHICLE_OWNER'], {
+    required_error: 'Please select a role',
+  }),
 }).refine((data) => data.password === data.confirmPassword, {
   message: 'Passwords do not match',
   path: ['confirmPassword'],

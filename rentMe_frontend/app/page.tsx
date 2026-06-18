@@ -1,13 +1,14 @@
 "use client"
+import authService from "@/services/auth.service";
 
 import { useState } from "react"
+import { useToast } from "@/hooks/use-toast"
+import { useRouter } from "next/navigation"
 import { AppLayout } from "@/components/templates/layout/app-layout"
 import { BrowseVehicles } from "@/components/renter/browse-vehicles"
 import { VehicleDetailPage } from "@/components/renter/vehicle-detail-page"
 import { MyBookings } from "@/components/renter/my-bookings"
 import { BookingForm } from "@/components/renter/booking-form"
-import { ChatInterface } from "@/components/chat/chat-interface"
-import { ChatsList } from "@/components/chat/chats-list"
 import { OwnerDashboard } from "@/components/owner/dashboard"
 import { MyVehicles } from "@/components/owner/my-vehicles"
 import { BookingRequests } from "@/components/owner/booking-requests"
@@ -22,16 +23,25 @@ import { RegistrationPage } from "@/components/auth/registration-page"
 import { UserProfilePage } from "@/components/auth/user-profile-page"
 import { ProfileSidebar } from "@/components/auth/profile-sidebar"
 import { getCurrentUserInfo } from "@/utils/user-info" // Declare the variable here
+import { UserRole as BackendUserRole } from "@/types";
 
 type UserRole = "renter" | "owner" | "admin"
 type AuthView = "login" | "register" | "app" | "profile"
+
+const mapRole = (role?: BackendUserRole | string | null): UserRole => {
+  if (!role) return "renter";
+  const r = typeof role === 'string' ? role.toUpperCase() : role;
+  if (r === BackendUserRole.ADMIN || r === "ADMIN") return "admin";
+  if (r === BackendUserRole.VEHICLE_OWNER || r === "VEHICLE_OWNER") return "owner";
+  return "renter";
+};
 
 export default function Home() {
   const [authView, setAuthView] = useState<AuthView>("login")
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [currentUser, setCurrentUser] = useState({ id: "", name: "", email: "", image: "/woman-profile.png" })
   const [currentRole, setCurrentRole] = useState<UserRole>("renter")
-  const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null)
+  const [selectedVehicleId, setSelectedVehicleId] = useState<number | null>(null)
   const [showBookingForm, setShowBookingForm] = useState(false)
   const [showChatInterface, setShowChatInterface] = useState(false)
   const [showChatsList, setShowChatsList] = useState(false)
@@ -39,31 +49,20 @@ export default function Home() {
   const [currentView, setCurrentView] = useState<"browse" | "detail">("browse")
   const [showProfileSidebar, setShowProfileSidebar] = useState(false)
   const [profileData, setProfileData] = useState<any>(null)
+  const { toast } = useToast()
+  const router = useRouter()
 
   const handleLoginSuccess = async (email: string, password: string) => {
     try {
-      const response = await fetch('http://localhost:8080/api/v1/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({ email, password }),
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        localStorage.setItem('user_id', data.userId)
-        localStorage.setItem('user_email', data.email)
-        localStorage.setItem('user_role', data.role)
-        
-        setCurrentUser({ id: data.userId, name: data.email, email: data.email, image: "/woman-profile.png" })
-        setIsAuthenticated(true)
-        setAuthView("app")
-      } else {
-        throw new Error('Invalid email or password')
-      }
-    } catch (err) {
+      const data = await authService.login({ email, password });
+      
+      setCurrentUser({ id: data.userId.toString(), name: data.email, email: data.email, image: "/woman-profile.png" })
+      setCurrentRole(mapRole(data.role))
+      setIsAuthenticated(true)
+      setAuthView("app")
+      toast({ title: "Login Successful", description: "Welcome back!" })
+    } catch (err: any) {
+      toast({ title: "Login Failed", description: err.response?.data?.message || err.message || "Invalid credentials", variant: "destructive" })
       throw err
     }
   }
@@ -76,38 +75,27 @@ export default function Home() {
     dateOfBirth?: string;
   }) => {
     try {
-      const response = await fetch('http://localhost:8080/api/v1/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          fullName: formData.fullName,
-          email: formData.email,
-          password: formData.password,
-          contactNumber: formData.phoneNumber,
-          role: 'RENTER',
-        }),
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        localStorage.setItem('user_id', data.userId)
-        localStorage.setItem('user_email', data.email)
-        localStorage.setItem('user_role', data.role)
-        
-        setCurrentUser({ id: data.userId, name: formData.fullName, email: formData.email, image: "/woman-profile.png" })
-        setIsAuthenticated(true)
-        setAuthView("app")
-      } else {
-        const errorData = await response.text()
-        throw new Error(errorData || 'Registration failed. Please try again.')
-      }
-    } catch (err) {
+      const data = await authService.register({
+        fullName: formData.fullName,
+        email: formData.email,
+        password: formData.password,
+        contactNumber: formData.phoneNumber,
+        dateOfBirth: formData.dateOfBirth,
+        role: BackendUserRole.RENTER
+      });
+      
+      setCurrentUser({ id: data.userId.toString(), name: formData.fullName, email: formData.email, image: "/woman-profile.png" })
+      setCurrentRole(mapRole(data.role))
+      setIsAuthenticated(true)
+      setAuthView("app")
+      toast({ title: "Registration Successful", description: "Your account has been created." })
+    } catch (err: any) {
+      toast({ title: "Registration Failed", description: err.response?.data?.message || err.message || "Failed to create account", variant: "destructive" })
       throw err
     }
   }
+
+
 
   const handleLogout = () => {
     setIsAuthenticated(false)
@@ -122,7 +110,7 @@ export default function Home() {
     setProfileData(null)
   }
 
-  const handleViewDetails = (vehicleId: string) => {
+  const handleViewDetails = (vehicleId: number) => {
     setSelectedVehicleId(vehicleId)
     setCurrentView("detail")
   }
@@ -200,7 +188,7 @@ export default function Home() {
       userEmail={currentUser.email}
       userImage={currentUser.image}
       userId={currentUser.id}
-      onMessagesClick={() => setShowChatsList(true)}
+      onMessagesClick={() => router.push(`/${currentRole}/chat`)}
       onProfileClick={() => setShowProfileSidebar(true)}
     >
       <main className="min-h-screen bg-background">
@@ -321,41 +309,15 @@ export default function Home() {
           }}
         />
       )}
-
-      {showChatInterface && selectedVehicleId && (
-        <ChatInterface
-          vehicleId={selectedVehicleId}
-          currentUserId="renter-1"
-          onClose={() => {
-            setShowChatInterface(false)
-          }}
-        />
-      )}
-
-      {showChatsList && (
-        <ChatsList
-          currentUserId={currentRole === "renter" ? "renter-1" : "owner-1"}
-          onSelectChat={(chatId) => {
-            setSelectedChatId(chatId)
-            setShowChatsList(false)
-            setShowChatInterface(true)
-          }}
-          onClose={() => setShowChatsList(false)}
-        />
-      )}
       
       {/* Profile Sidebar */}
       {showProfileSidebar && (
         <ProfileSidebar
-          userName={currentUser.name}
-          userEmail={currentUser.email}
-          userImage={currentUser.image}
           onManageProfile={() => {
             setAuthView("profile")
             setShowProfileSidebar(false)
             setProfileData(null)
           }}
-          onLogout={handleLogout}
           onClose={() => setShowProfileSidebar(false)}
         />
       )}

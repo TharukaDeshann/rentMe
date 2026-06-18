@@ -40,6 +40,9 @@ public class BookingService {
     @Autowired
     private VehicleService vehicleService;
 
+    @Autowired
+    private DocumentService documentService;
+
     // ─────────────────────────────────────────────────────────────────────────
     // CREATE BOOKING (Renter action)
     // ─────────────────────────────────────────────────────────────────────────
@@ -169,6 +172,31 @@ public class BookingService {
 
         Booking saved = bookingRepository.save(booking);
         return convertToResponseDTO(saved);
+    }
+
+    /**
+     * Owner marks an ONGOING booking as checked out / picked up.
+     * This records the actual pick-up timestamp.
+     */
+    @Transactional
+    public java.time.LocalDateTime markAsPickedUp(Long bookingId) {
+        VehicleOwner owner = getOwnerForCurrentUser();
+        Booking booking = findBookingOrThrow(bookingId);
+
+        // Ensure this booking belongs to the owner's vehicle
+        if (!booking.getVehicle().getVehicleOwner().getVehicleOwnerId()
+                .equals(owner.getVehicleOwnerId())) {
+            throw new RuntimeException("You do not have permission to update this booking.");
+        }
+
+        if (booking.getStatus() != BookingStatus.ONGOING) {
+            throw new RuntimeException("Booking must be in ONGOING status to mark as picked up.");
+        }
+
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        booking.setActualPickUpTime(now);
+        bookingRepository.save(booking);
+        return now;
     }
 
     /**
@@ -365,6 +393,38 @@ public class BookingService {
     }
 
     /**
+     * Admin updates status/cancels any booking.
+     */
+    @Transactional
+    public BookingResponseDTO adminUpdateBookingStatus(Long bookingId, BookingStatusUpdateDTO request) {
+        Booking booking = findBookingOrThrow(bookingId);
+        BookingStatus oldStatus = booking.getStatus();
+        BookingStatus newStatus = request.getNewStatus();
+
+        if (newStatus == BookingStatus.CANCELLED) {
+            booking.setStatus(BookingStatus.CANCELLED);
+            booking.setCancellationReason(
+                    request.getCancellationReason() != null
+                            ? request.getCancellationReason()
+                            : "Cancelled by Administrator");
+            // Restore vehicle availability if it was active
+            if (oldStatus == BookingStatus.APPROVED || oldStatus == BookingStatus.ONGOING) {
+                vehicleService.setAvailability(booking.getVehicle().getVehicleId(), true);
+            }
+        } else {
+            booking.setStatus(newStatus);
+            if (newStatus == BookingStatus.APPROVED) {
+                vehicleService.setAvailability(booking.getVehicle().getVehicleId(), false);
+            } else if (newStatus == BookingStatus.COMPLETED) {
+                vehicleService.setAvailability(booking.getVehicle().getVehicleId(), true);
+            }
+        }
+
+        Booking saved = bookingRepository.save(booking);
+        return convertToResponseDTO(saved);
+    }
+
+    /**
      * Convert Booking entity → BookingResponseDTO.
      */
     public BookingResponseDTO convertToResponseDTO(Booking booking) {
@@ -376,6 +436,15 @@ public class BookingService {
         dto.setTotalAmount(booking.getTotalAmount());
         dto.setNotes(booking.getNotes());
         dto.setCancellationReason(booking.getCancellationReason());
+        dto.setActualPickUpTime(booking.getActualPickUpTime());
+        
+        List<com.example.springrentMe.DTOs.DocumentResponseDTO> conditionImages = booking.getConditionImages() != null
+            ? booking.getConditionImages().stream()
+                .map(documentService::convertToDTO)
+                .collect(Collectors.toList())
+            : new java.util.ArrayList<>();
+        dto.setConditionImages(conditionImages);
+
         dto.setCreatedAt(booking.getCreatedAt());
         dto.setUpdatedAt(booking.getUpdatedAt());
 
@@ -391,7 +460,15 @@ public class BookingService {
             dto.setVehicleModel(vehicle.getModel());
             dto.setVehicleType(vehicle.getType() != null ? vehicle.getType().name() : null);
             dto.setVehiclePickupLocation(vehicle.getPickupLocation());
-            dto.setVehiclePictures(vehicle.getPictures());
+            
+            List<String> picUrls = vehicle.getDocuments() != null
+                ? vehicle.getDocuments().stream()
+                    .filter(d -> d.getDocumentType() == com.example.springrentMe.models.DocumentType.VEHICLE_PICTURE)
+                    .map(d -> documentService.convertToDTO(d).getFileUrl())
+                    .collect(Collectors.toList())
+                : new java.util.ArrayList<>();
+            dto.setVehiclePictures(picUrls);
+            
             dto.setDailyPrice(vehicle.getDailyPrice());
 
             VehicleOwner owner = vehicle.getVehicleOwner();
