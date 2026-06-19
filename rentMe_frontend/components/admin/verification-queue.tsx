@@ -317,6 +317,7 @@ function RequestCard({
  * - Approve / Reject with confirm dialogs
  * - Auto-refresh after action
  */
+
 export function VerificationQueue() {
   const { toast } = useToast();
 
@@ -339,12 +340,18 @@ export function VerificationQueue() {
   const [isActing, setIsActing] = useState(false);
   const [actingId, setActingId] = useState<number | null>(null);
 
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
+
   // ── Load ───────────────────────────────────────────────────────────────────
 
   const loadRequests = useCallback(async () => {
     setIsLoading(true);
     try {
-      const data = await verificationService.getAllVerificationRequests();
+      const response = await verificationService.getAllVerificationRequests(currentPage, 10);
+      const data = response.data;
       // Sort: PENDING first, then by submittedAt desc
       data.sort((a, b) => {
         if (a.status === "PENDING" && b.status !== "PENDING") return -1;
@@ -354,6 +361,8 @@ export function VerificationQueue() {
         );
       });
       setRequests(data);
+      setTotalPages(response.meta.totalPages);
+      setTotalElements(response.meta.totalElements);
     } catch (err: any) {
       toast({
         title: "Failed to load requests",
@@ -363,11 +372,16 @@ export function VerificationQueue() {
     } finally {
       setIsLoading(false);
     }
-  }, [toast]);
+  }, [currentPage, toast]);
 
   useEffect(() => {
     loadRequests();
   }, [loadRequests]);
+
+  // Reset page when filtering changes
+  useEffect(() => {
+    setCurrentPage(0);
+  }, [activeTab, searchQuery]);
 
   // ── Filter ─────────────────────────────────────────────────────────────────
 
@@ -547,17 +561,47 @@ export function VerificationQueue() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-3">
-          {filtered.map((req) => (
-            <RequestCard
-              key={req.requestId}
-              req={req}
-              onView={setDetailRequest}
-              onApprove={(r) => setApproveTarget(r)}
-              onReject={(r) => setRejectTarget(r)}
-              isActing={actingId === req.requestId}
-            />
-          ))}
+        <div className="space-y-4">
+          <div className="grid gap-3">
+            {filtered.map((req) => (
+              <RequestCard
+                key={req.requestId}
+                req={req}
+                onView={setDetailRequest}
+                onApprove={(r) => setApproveTarget(r)}
+                onReject={(r) => setRejectTarget(r)}
+                isActing={actingId === req.requestId}
+              />
+            ))}
+          </div>
+
+          {/* Pagination controls */}
+          <div className="flex items-center justify-between px-4 py-3 border rounded-lg bg-card">
+            <div className="text-xs text-muted-foreground">
+              Showing {totalElements === 0 ? 0 : currentPage * 10 + 1} to {Math.min((currentPage + 1) * 10, totalElements)} of {totalElements} requests
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 0))}
+                disabled={currentPage === 0 || isLoading}
+              >
+                Previous
+              </Button>
+              <div className="text-xs font-medium px-2">
+                Page {currentPage + 1} of {totalPages || 1}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages - 1))}
+                disabled={currentPage >= totalPages - 1 || isLoading}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
         </div>
       )}
 

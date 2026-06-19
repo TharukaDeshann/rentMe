@@ -47,12 +47,12 @@ public class ChatController {
      */
     @PreAuthorize("isAuthenticated()")
     @GetMapping("/chat/sessions")
-    public ResponseEntity<Page<ChatSessionResponseDTO>> getMySessions(
+    public ResponseEntity<PageResponse<ChatSessionResponseDTO>> getMySessions(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(required = false) Integer size) {
         int pageSize = size != null ? size : defaultSessionsPerPage;
         Pageable pageable = PageRequest.of(page, pageSize, Sort.by("lastMessageAt").descending());
-        return ResponseEntity.ok(chatService.getMySessions(pageable));
+        return ResponseEntity.ok(PageResponse.of(chatService.getMySessions(pageable)));
     }
 
     /**
@@ -71,13 +71,13 @@ public class ChatController {
      */
     @PreAuthorize("isAuthenticated()")
     @GetMapping("/chat/sessions/{sessionId}/messages")
-    public ResponseEntity<Page<ChatMessageResponseDTO>> getMessages(
+    public ResponseEntity<PageResponse<ChatMessageResponseDTO>> getMessages(
             @PathVariable Long sessionId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(required = false) Integer size) {
         int pageSize = size != null ? size : defaultMessagesPerPage;
         Pageable pageable = PageRequest.of(page, pageSize, Sort.by("createdAt").ascending());
-        return ResponseEntity.ok(chatService.getMessages(sessionId, pageable));
+        return ResponseEntity.ok(PageResponse.of(chatService.getMessages(sessionId, pageable)));
     }
 
     /**
@@ -145,12 +145,12 @@ public class ChatController {
      */
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/admin/chat/sessions")
-    public ResponseEntity<Page<ChatSessionResponseDTO>> getAllSessions(
+    public ResponseEntity<PageResponse<ChatSessionResponseDTO>> getAllSessions(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(required = false) Integer size) {
         int pageSize = size != null ? size : defaultSessionsPerPage;
         Pageable pageable = PageRequest.of(page, pageSize, Sort.by("lastMessageAt").descending());
-        return ResponseEntity.ok(chatService.getAllSessionsSystemWide(pageable));
+        return ResponseEntity.ok(PageResponse.of(chatService.getAllSessionsSystemWide(pageable)));
     }
 
     /**
@@ -159,12 +159,12 @@ public class ChatController {
      */
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/admin/chat/sessions/{sessionId}/messages")
-    public ResponseEntity<Page<ChatMessageResponseDTO>> getAnySessionMessages(
+    public ResponseEntity<PageResponse<ChatMessageResponseDTO>> getAnySessionMessages(
             @PathVariable Long sessionId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(required = false) Integer size) {
         int pageSize = size != null ? size : defaultMessagesPerPage;
         Pageable pageable = PageRequest.of(page, pageSize, Sort.by("createdAt").ascending());
-        return ResponseEntity.ok(chatService.getAnySessionMessages(sessionId, pageable));
+        return ResponseEntity.ok(PageResponse.of(chatService.getAnySessionMessages(sessionId, pageable)));
     }
 }

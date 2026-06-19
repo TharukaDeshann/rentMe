@@ -11,6 +11,8 @@ import com.example.springrentMe.security.UserDetailsImpl;
 import com.example.springrentMe.services.storage.FileStorageService;
 import com.example.springrentMe.services.storage.FileValidationService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -119,18 +121,16 @@ public class VerificationService {
     // ─────────────────────────────────────────────────────────────────────────
 
     @Transactional(readOnly = true)
-    public List<VerificationRequestResponseDTO> getMyVerificationHistory() {
+    public Page<VerificationRequestResponseDTO> getMyVerificationHistory(Pageable pageable) {
         Long userId = getCurrentUserId();
         java.util.Optional<VehicleOwner> ownerOpt = vehicleOwnerRepository.findByUser_UserId(userId);
         if (ownerOpt.isEmpty()) {
-            return List.of();
+            return Page.empty(pageable);
         }
         VehicleOwner owner = ownerOpt.get();
         return vrRepository
-                .findByVehicleOwner_VehicleOwnerIdOrderBySubmittedAtDesc(owner.getVehicleOwnerId())
-                .stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
+                .findByVehicleOwner_VehicleOwnerIdOrderBySubmittedAtDesc(owner.getVehicleOwnerId(), pageable)
+                .map(this::convertToDTO);
     }
 
     @Transactional(readOnly = true)
@@ -169,19 +169,15 @@ public class VerificationService {
     // ─────────────────────────────────────────────────────────────────────────
 
     @Transactional(readOnly = true)
-    public List<VerificationRequestResponseDTO> getAllPendingRequests() {
-        return vrRepository.findByStatusOrderBySubmittedAtAsc(VerificationStatus.PENDING)
-                .stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
+    public Page<VerificationRequestResponseDTO> getAllPendingRequests(Pageable pageable) {
+        return vrRepository.findByStatusOrderBySubmittedAtAsc(VerificationStatus.PENDING, pageable)
+                .map(this::convertToDTO);
     }
 
     @Transactional(readOnly = true)
-    public List<VerificationRequestResponseDTO> getAllRequests() {
-        return vrRepository.findAll()
-                .stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
+    public Page<VerificationRequestResponseDTO> getAllRequests(Pageable pageable) {
+        return vrRepository.findAll(pageable)
+                .map(this::convertToDTO);
     }
 
     @Transactional(readOnly = true)

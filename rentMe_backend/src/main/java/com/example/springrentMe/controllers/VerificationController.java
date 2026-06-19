@@ -1,10 +1,14 @@
 package com.example.springrentMe.controllers;
 
 import com.example.springrentMe.DTOs.AdminVerificationActionDTO;
+import com.example.springrentMe.DTOs.PageResponse;
 import com.example.springrentMe.DTOs.VerificationRequestResponseDTO;
 import com.example.springrentMe.models.DocumentType;
 import com.example.springrentMe.services.VerificationService;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -84,8 +88,11 @@ public class VerificationController {
     /** GET /api/v1/owner/verification/history */
     @PreAuthorize("hasAnyRole('VEHICLE_OWNER', 'RENTER')")
     @GetMapping("/api/v1/owner/verification/history")
-    public ResponseEntity<List<VerificationRequestResponseDTO>> getMyHistory() {
-        return ResponseEntity.ok(verificationService.getMyVerificationHistory());
+    public ResponseEntity<PageResponse<VerificationRequestResponseDTO>> getMyHistory(
+            @RequestParam(defaultValue = "0")    int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("submittedAt").descending());
+        return ResponseEntity.ok(PageResponse.of(verificationService.getMyVerificationHistory(pageable)));
     }
 
     /** GET /api/v1/owner/verification/latest */
@@ -142,15 +149,21 @@ public class VerificationController {
     /** GET /api/v1/admin/verification/pending */
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/api/v1/admin/verification/pending")
-    public ResponseEntity<List<VerificationRequestResponseDTO>> getPendingRequests() {
-        return ResponseEntity.ok(verificationService.getAllPendingRequests());
+    public ResponseEntity<PageResponse<VerificationRequestResponseDTO>> getPendingRequests(
+            @RequestParam(defaultValue = "0")    int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("submittedAt").ascending());
+        return ResponseEntity.ok(PageResponse.of(verificationService.getAllPendingRequests(pageable)));
     }
 
     /** GET /api/v1/admin/verification/all */
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/api/v1/admin/verification/all")
-    public ResponseEntity<List<VerificationRequestResponseDTO>> getAllRequests() {
-        return ResponseEntity.ok(verificationService.getAllRequests());
+    public ResponseEntity<PageResponse<VerificationRequestResponseDTO>> getAllRequests(
+            @RequestParam(defaultValue = "0")    int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("submittedAt").descending());
+        return ResponseEntity.ok(PageResponse.of(verificationService.getAllRequests(pageable)));
     }
 
     /** GET /api/v1/admin/verification/{id} */

@@ -49,12 +49,7 @@ export interface CreateSessionRequestDTO {
   vehicleId?: number | null;
 }
 
-// Paginated API response wrapper
-export interface PageResponse<T> {
-  content: T[];
-  totalElements: number;
-  totalPages: number;
-  number: number;
-  size: number;
-  last: boolean;
-}
+
+// Paginated API response wrapper — re-exported from shared type
+export type { PageResponse, PageMeta } from "./pagination";
+

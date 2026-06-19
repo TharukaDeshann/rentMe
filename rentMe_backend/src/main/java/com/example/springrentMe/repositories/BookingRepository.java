@@ -2,6 +2,8 @@ package com.example.springrentMe.repositories;
 
 import com.example.springrentMe.models.Booking;
 import com.example.springrentMe.models.BookingStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -15,6 +17,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     // All bookings for a specific renter
     List<Booking> findByRenter_RenterIdOrderByCreatedAtDesc(Long renterId);
+    Page<Booking> findByRenter_RenterIdOrderByCreatedAtDesc(Long renterId, Pageable pageable);
 
     // All bookings for vehicles owned by a specific owner
     @Query("""
@@ -23,6 +26,13 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
         ORDER BY b.createdAt DESC
         """)
     List<Booking> findByVehicleOwnerIdOrderByCreatedAtDesc(@Param("ownerId") Long ownerId);
+
+    @Query("""
+        SELECT b FROM Booking b
+        WHERE b.vehicle.vehicleOwner.vehicleOwnerId = :ownerId
+        ORDER BY b.createdAt DESC
+        """)
+    Page<Booking> findByVehicleOwnerIdOrderByCreatedAtDesc(@Param("ownerId") Long ownerId, Pageable pageable);
 
     // All bookings for a specific vehicle
     List<Booking> findByVehicle_VehicleIdOrderByCreatedAtDesc(Long vehicleId);
@@ -105,4 +115,12 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
         ORDER BY b.createdAt ASC
         """)
     List<Booking> findPendingRequestsByOwnerId(@Param("ownerId") Long ownerId);
+
+    @Query("""
+        SELECT b FROM Booking b
+        WHERE b.vehicle.vehicleOwner.vehicleOwnerId = :ownerId
+          AND b.status = 'PENDING'
+        ORDER BY b.createdAt ASC
+        """)
+    Page<Booking> findPendingRequestsByOwnerId(@Param("ownerId") Long ownerId, Pageable pageable);
 }

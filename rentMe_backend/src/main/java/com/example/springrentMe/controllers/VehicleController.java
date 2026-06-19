@@ -1,5 +1,6 @@
 package com.example.springrentMe.controllers;
 
+import com.example.springrentMe.DTOs.PageResponse;
 import com.example.springrentMe.DTOs.VehicleAvailabilityUpdateDTO;
 import com.example.springrentMe.DTOs.VehicleRequestDTO;
 import com.example.springrentMe.DTOs.VehicleResponseDTO;
@@ -7,6 +8,9 @@ import com.example.springrentMe.models.VehicleType;
 import com.example.springrentMe.services.VehicleService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -39,11 +43,13 @@ public class VehicleController {
      * Optional query params: type, maxPrice
      */
     @GetMapping("/api/v1/public/vehicles")
-    public ResponseEntity<List<VehicleResponseDTO>> getAvailableVehicles(
+    public ResponseEntity<PageResponse<VehicleResponseDTO>> getAvailableVehicles(
             @RequestParam(required = false) VehicleType type,
-            @RequestParam(required = false) BigDecimal maxPrice) {
-        List<VehicleResponseDTO> vehicles = vehicleService.searchVehicles(type, maxPrice);
-        return ResponseEntity.ok(vehicles);
+            @RequestParam(required = false) BigDecimal maxPrice,
+            @RequestParam(defaultValue = "0")    int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        return ResponseEntity.ok(PageResponse.of(vehicleService.searchVehicles(type, maxPrice, pageable)));
     }
 
     /**
@@ -51,14 +57,16 @@ public class VehicleController {
      * Get vehicles within a lat/lng bounding box for the map view.
      */
     @GetMapping("/api/v1/public/vehicles/map")
-    public ResponseEntity<List<VehicleResponseDTO>> getVehiclesForMap(
+    public ResponseEntity<PageResponse<VehicleResponseDTO>> getVehiclesForMap(
             @RequestParam Double minLat,
             @RequestParam Double maxLat,
             @RequestParam Double minLng,
-            @RequestParam Double maxLng) {
-        List<VehicleResponseDTO> vehicles =
-                vehicleService.getVehiclesInBounds(minLat, maxLat, minLng, maxLng);
-        return ResponseEntity.ok(vehicles);
+            @RequestParam Double maxLng,
+            @RequestParam(defaultValue = "0")    int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.unsorted());
+        return ResponseEntity.ok(PageResponse.of(
+                vehicleService.getVehiclesInBounds(minLat, maxLat, minLng, maxLng, pageable)));
     }
 
     /**
@@ -98,8 +106,11 @@ public class VehicleController {
      */
     @PreAuthorize("hasRole('VEHICLE_OWNER')")
     @GetMapping("/api/v1/owner/vehicles")
-    public ResponseEntity<List<VehicleResponseDTO>> getMyVehicles() {
-        return ResponseEntity.ok(vehicleService.getMyVehicles());
+    public ResponseEntity<PageResponse<VehicleResponseDTO>> getMyVehicles(
+            @RequestParam(defaultValue = "0")    int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        return ResponseEntity.ok(PageResponse.of(vehicleService.getMyVehicles(pageable)));
     }
 
     /**
@@ -167,10 +178,11 @@ public class VehicleController {
      */
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/api/v1/admin/vehicles")
-    public ResponseEntity<List<VehicleResponseDTO>> getAllVehiclesAdmin() {
-        // Return all vehicles (listed or not, available or not)
-        List<VehicleResponseDTO> all = vehicleService.getAllVehiclesAdmin();
-        return ResponseEntity.ok(all);
+    public ResponseEntity<PageResponse<VehicleResponseDTO>> getAllVehiclesAdmin(
+            @RequestParam(defaultValue = "0")    int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        return ResponseEntity.ok(PageResponse.of(vehicleService.getAllVehiclesAdmin(pageable)));
     }
 
     /**

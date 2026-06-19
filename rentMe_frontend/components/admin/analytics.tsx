@@ -276,17 +276,17 @@ export function Analytics() {
     setError(null);
     try {
       const [u, v, b, r, ver] = await Promise.all([
-        getAllUsers(),
-        getAllVehiclesAdmin(),
-        getAllBookingsAdmin(),
-        getAllReviewsAdmin(),
-        getAllVerificationRequests(),
+        getAllUsers(0, 10),
+        getAllVehiclesAdmin(0, 10),
+        getAllBookingsAdmin(0, 10),
+        getAllReviewsAdmin(0, 10),
+        getAllVerificationRequests(0, 10),
       ]);
-      setUsers(u);
-      setVehicles(v);
-      setBookings(b);
-      setReviews(r);
-      setVerifications(ver);
+      setUsers(u.data);
+      setVehicles(v.data);
+      setBookings(b.data);
+      setReviews(r.data);
+      setVerifications(ver.data);
       setLastRefreshed(new Date());
     } catch (err: any) {
       setError(err.message ?? "Failed to load analytics data");

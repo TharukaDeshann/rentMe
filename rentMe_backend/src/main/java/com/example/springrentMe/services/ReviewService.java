@@ -14,6 +14,8 @@ import com.example.springrentMe.repositories.VehicleOwnerRepository;
 import com.example.springrentMe.repositories.VehicleRepository;
 import com.example.springrentMe.security.UserDetailsImpl;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -120,11 +122,9 @@ public class ReviewService {
      * Get reviews list by Vehicle ID
      */
     @Transactional(readOnly = true)
-    public List<ReviewResponseDTO> getReviewsByVehicle(Long vehicleId) {
-        return reviewRepository.findByVehicle_VehicleIdOrderByCreatedAtDesc(vehicleId)
-                .stream()
-                .map(this::convertToResponseDTO)
-                .collect(Collectors.toList());
+    public Page<ReviewResponseDTO> getReviewsByVehicle(Long vehicleId, Pageable pageable) {
+        return reviewRepository.findByVehicle_VehicleIdOrderByCreatedAtDesc(vehicleId, pageable)
+                .map(this::convertToResponseDTO);
     }
 
     /**
@@ -159,11 +159,9 @@ public class ReviewService {
      * Get all reviews in the system (useful for admin moderation)
      */
     @Transactional(readOnly = true)
-    public List<ReviewResponseDTO> getAllReviews() {
-        return reviewRepository.findAllByOrderByCreatedAtDesc()
-                .stream()
-                .map(this::convertToResponseDTO)
-                .collect(Collectors.toList());
+    public Page<ReviewResponseDTO> getAllReviews(Pageable pageable) {
+        return reviewRepository.findAllByOrderByCreatedAtDesc(pageable)
+                .map(this::convertToResponseDTO);
     }
 
     // ─────────────────────────────────────────────────────────────────────────

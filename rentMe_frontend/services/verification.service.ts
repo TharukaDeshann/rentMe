@@ -11,6 +11,7 @@ import {
   DocumentType,
   AdminReviewActionDTO,
 } from "@/types/document";
+import { PageResponse } from "@/types/pagination";
 
 // ─── Owner flow ───────────────────────────────────────────────────────────────
 
@@ -60,10 +61,10 @@ export const getMyVerificationHistory = async (): Promise<
   VerificationRequest[]
 > => {
   try {
-    const response = await apiClient.get<VerificationRequest[]>(
+    const response = await apiClient.get<PageResponse<VerificationRequest>>(
       "/owner/verification/history"
     );
-    return response.data;
+    return response.data.data;
   } catch (error) {
     throw new Error(getErrorMessage(error));
   }
@@ -130,10 +131,10 @@ export const getPendingVerificationRequests = async (): Promise<
   VerificationRequest[]
 > => {
   try {
-    const response = await apiClient.get<VerificationRequest[]>(
+    const response = await apiClient.get<PageResponse<VerificationRequest>>(
       "/admin/verification/pending"
     );
-    return response.data;
+    return response.data.data;
   } catch (error) {
     throw new Error(getErrorMessage(error));
   }
@@ -143,12 +144,16 @@ export const getPendingVerificationRequests = async (): Promise<
  * GET /admin/verification/all
  * All verification requests regardless of status.
  */
-export const getAllVerificationRequests = async (): Promise<
-  VerificationRequest[]
-> => {
+export const getAllVerificationRequests = async (
+  page?: number,
+  size?: number
+): Promise<PageResponse<VerificationRequest>> => {
   try {
-    const response = await apiClient.get<VerificationRequest[]>(
-      "/admin/verification/all"
+    const response = await apiClient.get<PageResponse<VerificationRequest>>(
+      "/admin/verification/all",
+      {
+        params: { page, size },
+      }
     );
     return response.data;
   } catch (error) {

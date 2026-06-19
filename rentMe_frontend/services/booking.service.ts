@@ -9,6 +9,7 @@ import {
   BookingRequestDTO,
   BookingStatusUpdateDTO,
 } from "@/types/booking";
+import { PageResponse } from "@/types/pagination";
 
 // ─── Booking APIs (Renter) ────────────────────────────────────────────────────
 
@@ -31,8 +32,8 @@ export const createBooking = async (
  */
 export const getMyBookingsAsRenter = async (): Promise<Booking[]> => {
   try {
-    const response = await apiClient.get<Booking[]>("/bookings/my");
-    return response.data;
+    const response = await apiClient.get<PageResponse<Booking>>("/bookings/my");
+    return response.data.data;
   } catch (error) {
     throw new Error(getErrorMessage(error));
   }
@@ -75,8 +76,8 @@ export const cancelBookingAsRenter = async (
  */
 export const getMyBookingsAsOwner = async (): Promise<Booking[]> => {
   try {
-    const response = await apiClient.get<Booking[]>("/owner/bookings");
-    return response.data;
+    const response = await apiClient.get<PageResponse<Booking>>("/owner/bookings");
+    return response.data.data;
   } catch (error) {
     throw new Error(getErrorMessage(error));
   }
@@ -87,8 +88,8 @@ export const getMyBookingsAsOwner = async (): Promise<Booking[]> => {
  */
 export const getPendingBookingRequests = async (): Promise<Booking[]> => {
   try {
-    const response = await apiClient.get<Booking[]>("/owner/bookings/pending");
-    return response.data;
+    const response = await apiClient.get<PageResponse<Booking>>("/owner/bookings/pending");
+    return response.data.data;
   } catch (error) {
     throw new Error(getErrorMessage(error));
   }
@@ -115,9 +116,14 @@ export const updateBookingStatusAsOwner = async (
 /**
  * GET /admin/bookings — list all bookings for admin
  */
-export const getAllBookingsAdmin = async (): Promise<Booking[]> => {
+export const getAllBookingsAdmin = async (
+  page?: number,
+  size?: number
+): Promise<PageResponse<Booking>> => {
   try {
-    const response = await apiClient.get<Booking[]>("/admin/bookings");
+    const response = await apiClient.get<PageResponse<Booking>>("/admin/bookings", {
+      params: { page, size },
+    });
     return response.data;
   } catch (error) {
     throw new Error(getErrorMessage(error));

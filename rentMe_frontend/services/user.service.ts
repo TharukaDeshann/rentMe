@@ -5,14 +5,20 @@
 
 import apiClient, { getErrorMessage } from "../lib/api/axios";
 import { User, UpdateUserRequest } from "@/types";
+import { PageResponse } from "@/types/pagination";
 
 /**
  * Get ALL users — Admin only
  * GET /users
  */
-export const getAllUsers = async (): Promise<User[]> => {
+export const getAllUsers = async (
+  page?: number,
+  size?: number
+): Promise<PageResponse<User>> => {
   try {
-    const response = await apiClient.get<User[]>("/users");
+    const response = await apiClient.get<PageResponse<User>>("/users", {
+      params: { page, size },
+    });
     return response.data;
   } catch (error) {
     throw new Error(getErrorMessage(error));

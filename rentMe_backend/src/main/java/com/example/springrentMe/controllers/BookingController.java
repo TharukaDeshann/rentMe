@@ -3,10 +3,14 @@ package com.example.springrentMe.controllers;
 import com.example.springrentMe.DTOs.BookingRequestDTO;
 import com.example.springrentMe.DTOs.BookingResponseDTO;
 import com.example.springrentMe.DTOs.BookingStatusUpdateDTO;
+import com.example.springrentMe.DTOs.PageResponse;
 import com.example.springrentMe.models.BookingStatus;
 import com.example.springrentMe.services.BookingService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -55,8 +59,11 @@ public class BookingController {
      */
     @PreAuthorize("hasRole('RENTER')")
     @GetMapping("/bookings/my")
-    public ResponseEntity<List<BookingResponseDTO>> getMyBookingsAsRenter() {
-        return ResponseEntity.ok(bookingService.getMyBookingsAsRenter());
+    public ResponseEntity<PageResponse<BookingResponseDTO>> getMyBookingsAsRenter(
+            @RequestParam(defaultValue = "0")    int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        return ResponseEntity.ok(PageResponse.of(bookingService.getMyBookingsAsRenter(pageable)));
     }
 
     /**
@@ -108,8 +115,11 @@ public class BookingController {
      */
     @PreAuthorize("hasRole('VEHICLE_OWNER')")
     @GetMapping("/owner/bookings")
-    public ResponseEntity<List<BookingResponseDTO>> getOwnerBookings() {
-        return ResponseEntity.ok(bookingService.getMyBookingsAsOwner());
+    public ResponseEntity<PageResponse<BookingResponseDTO>> getOwnerBookings(
+            @RequestParam(defaultValue = "0")    int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        return ResponseEntity.ok(PageResponse.of(bookingService.getMyBookingsAsOwner(pageable)));
     }
 
     /**
@@ -118,8 +128,11 @@ public class BookingController {
      */
     @PreAuthorize("hasRole('VEHICLE_OWNER')")
     @GetMapping("/owner/bookings/pending")
-    public ResponseEntity<List<BookingResponseDTO>> getPendingRequests() {
-        return ResponseEntity.ok(bookingService.getPendingRequestsForOwner());
+    public ResponseEntity<PageResponse<BookingResponseDTO>> getPendingRequests(
+            @RequestParam(defaultValue = "0")    int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").ascending());
+        return ResponseEntity.ok(PageResponse.of(bookingService.getPendingRequestsForOwner(pageable)));
     }
 
     /**
@@ -175,8 +188,11 @@ public class BookingController {
      */
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/admin/bookings")
-    public ResponseEntity<List<BookingResponseDTO>> getAllBookings() {
-        return ResponseEntity.ok(bookingService.getAllBookings());
+    public ResponseEntity<PageResponse<BookingResponseDTO>> getAllBookings(
+            @RequestParam(defaultValue = "0")    int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        return ResponseEntity.ok(PageResponse.of(bookingService.getAllBookings(pageable)));
     }
 
     /**

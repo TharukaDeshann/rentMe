@@ -1,11 +1,15 @@
 package com.example.springrentMe.controllers;
 
 import com.example.springrentMe.DTOs.CreateReviewRequestDTO;
+import com.example.springrentMe.DTOs.PageResponse;
 import com.example.springrentMe.DTOs.ReviewResponseDTO;
 import com.example.springrentMe.DTOs.VehicleReviewSummaryDTO;
 import com.example.springrentMe.services.ReviewService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -53,9 +57,12 @@ public class ReviewController {
      * Retrieve all reviews for a vehicle (Public).
      */
     @GetMapping("/api/v1/public/reviews/vehicle/{vehicleId}")
-    public ResponseEntity<List<ReviewResponseDTO>> getReviewsByVehicle(@PathVariable Long vehicleId) {
-        List<ReviewResponseDTO> reviews = reviewService.getReviewsByVehicle(vehicleId);
-        return ResponseEntity.ok(reviews);
+    public ResponseEntity<PageResponse<ReviewResponseDTO>> getReviewsByVehicle(
+            @PathVariable Long vehicleId,
+            @RequestParam(defaultValue = "0")    int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        return ResponseEntity.ok(PageResponse.of(reviewService.getReviewsByVehicle(vehicleId, pageable)));
     }
 
     /**
@@ -85,8 +92,10 @@ public class ReviewController {
      */
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/api/v1/admin/reviews")
-    public ResponseEntity<List<ReviewResponseDTO>> getAllReviewsAdmin() {
-        List<ReviewResponseDTO> reviews = reviewService.getAllReviews();
-        return ResponseEntity.ok(reviews);
+    public ResponseEntity<PageResponse<ReviewResponseDTO>> getAllReviewsAdmin(
+            @RequestParam(defaultValue = "0")    int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        return ResponseEntity.ok(PageResponse.of(reviewService.getAllReviews(pageable)));
     }
 }

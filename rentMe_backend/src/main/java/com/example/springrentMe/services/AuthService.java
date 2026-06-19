@@ -112,12 +112,8 @@ public class AuthService {
             renterRepository.save(renter);
         }
 
-        // Generate JWT token
-        String token = jwtTokenProvider.generateTokenFromUsername(savedUser.getEmail());
-
         // Return response
         return new AuthResponse(
-                token,
                 savedUser.getUserId(),
                 savedUser.getEmail(),
                 savedUser.getRole().name());

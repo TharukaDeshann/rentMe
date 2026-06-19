@@ -8,6 +8,8 @@ import com.example.springrentMe.repositories.VehicleOwnerRepository;
 import com.example.springrentMe.repositories.VehicleRepository;
 import com.example.springrentMe.security.UserDetailsImpl;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -66,56 +68,50 @@ public class VehicleService {
      * Get all listed + available vehicles (public, used by renters).
      */
     @Transactional(readOnly = true)
-    public List<VehicleResponseDTO> getAllAvailableVehicles() {
-        return vehicleRepository.findByIsListedTrueAndIsAvailableTrue()
-                .stream()
-                .map(this::convertToResponseDTO)
-                .collect(Collectors.toList());
+    public Page<VehicleResponseDTO> getAllAvailableVehicles(Pageable pageable) {
+        return vehicleRepository.findByIsListedTrueAndIsAvailableTrue(pageable)
+                .map(this::convertToResponseDTO);
     }
 
     /**
      * Admin view: Get all vehicles regardless of status.
      */
     @Transactional(readOnly = true)
-    public List<VehicleResponseDTO> getAllVehiclesAdmin() {
-        return vehicleRepository.findAll()
-                .stream()
-                .map(this::convertToResponseDTO)
-                .collect(Collectors.toList());
+    public Page<VehicleResponseDTO> getAllVehiclesAdmin(Pageable pageable) {
+        return vehicleRepository.findAll(pageable)
+                .map(this::convertToResponseDTO);
     }
 
     /**
      * Search with optional filters (public).
      */
     @Transactional(readOnly = true)
-    public List<VehicleResponseDTO> searchVehicles(VehicleType type, BigDecimal maxPrice) {
-        List<Vehicle> results;
+    public Page<VehicleResponseDTO> searchVehicles(VehicleType type, BigDecimal maxPrice, Pageable pageable) {
+        Page<Vehicle> results;
 
         if (type != null && maxPrice != null) {
             results = vehicleRepository
-                    .findByIsListedTrueAndIsAvailableTrueAndTypeAndDailyPriceLessThanEqual(type, maxPrice);
+                    .findByIsListedTrueAndIsAvailableTrueAndTypeAndDailyPriceLessThanEqual(type, maxPrice, pageable);
         } else if (type != null) {
-            results = vehicleRepository.findByIsListedTrueAndIsAvailableTrueAndType(type);
+            results = vehicleRepository.findByIsListedTrueAndIsAvailableTrueAndType(type, pageable);
         } else if (maxPrice != null) {
             results = vehicleRepository
-                    .findByIsListedTrueAndIsAvailableTrueAndDailyPriceLessThanEqual(maxPrice);
+                    .findByIsListedTrueAndIsAvailableTrueAndDailyPriceLessThanEqual(maxPrice, pageable);
         } else {
-            results = vehicleRepository.findByIsListedTrueAndIsAvailableTrue();
+            results = vehicleRepository.findByIsListedTrueAndIsAvailableTrue(pageable);
         }
 
-        return results.stream().map(this::convertToResponseDTO).collect(Collectors.toList());
+        return results.map(this::convertToResponseDTO);
     }
 
     /**
      * Get vehicles within a geographic bounding box (for map view).
      */
     @Transactional(readOnly = true)
-    public List<VehicleResponseDTO> getVehiclesInBounds(
-            Double minLat, Double maxLat, Double minLng, Double maxLng) {
-        return vehicleRepository.findAvailableVehiclesInBounds(minLat, maxLat, minLng, maxLng)
-                .stream()
-                .map(this::convertToResponseDTO)
-                .collect(Collectors.toList());
+    public Page<VehicleResponseDTO> getVehiclesInBounds(
+            Double minLat, Double maxLat, Double minLng, Double maxLng, Pageable pageable) {
+        return vehicleRepository.findAvailableVehiclesInBounds(minLat, maxLat, minLng, maxLng, pageable)
+                .map(this::convertToResponseDTO);
     }
 
     /**
@@ -131,12 +127,10 @@ public class VehicleService {
      * Get all vehicles belonging to the currently authenticated owner.
      */
     @Transactional(readOnly = true)
-    public List<VehicleResponseDTO> getMyVehicles() {
+    public Page<VehicleResponseDTO> getMyVehicles(Pageable pageable) {
         VehicleOwner owner = getOwnerForCurrentUser();
-        return vehicleRepository.findByVehicleOwner_VehicleOwnerId(owner.getVehicleOwnerId())
-                .stream()
-                .map(this::convertToResponseDTO)
-                .collect(Collectors.toList());
+        return vehicleRepository.findByVehicleOwner_VehicleOwnerId(owner.getVehicleOwnerId(), pageable)
+                .map(this::convertToResponseDTO);
     }
 
     // ─────────────────────────────────────────────────────────────────────────

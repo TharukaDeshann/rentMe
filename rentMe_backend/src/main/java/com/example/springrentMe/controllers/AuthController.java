@@ -32,19 +32,11 @@ public class AuthController {
     /**
      * Register a new user
      * POST /api/v1/auth/register
-     * Sets JWT token in HTTP-only cookie for security
      */
     @PostMapping("/register")
-    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request, HttpServletResponse response) {
+    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {
         try {
             AuthResponse authResponse = authService.register(request);
-
-            // Fetch user entity for cookie creation
-            User user = userRepository.findByEmail(authResponse.getEmail())
-                    .orElseThrow(() -> new RuntimeException("User not found after registration"));
-
-            // Set JWT token in HTTP-only cookie using centralized utility
-            CookieUtils.setAuthCookies(response, authResponse.getToken(), user);
 
             // Return user info (without token in body)
             Map<String, Object> responseBody = new HashMap<>();

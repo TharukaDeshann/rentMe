@@ -2,6 +2,7 @@ package com.example.springrentMe.services;
 
 import com.example.springrentMe.DTOs.ChangePasswordRequest;
 import com.example.springrentMe.DTOs.LocationDTO;
+import com.example.springrentMe.DTOs.PageResponse;
 import com.example.springrentMe.DTOs.UpdateUserRequest;
 import com.example.springrentMe.DTOs.UserDTO;
 import com.example.springrentMe.models.*;
@@ -10,6 +11,8 @@ import com.example.springrentMe.services.storage.FileStorageService;
 import com.example.springrentMe.services.storage.FileValidationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -57,10 +60,9 @@ public class UserService {
      * Get all users (Admin only)
      */
     @Transactional(readOnly = true)
-    public List<UserDTO> getAllUsers() {
-        return userRepository.findAll().stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
+    public Page<UserDTO> getAllUsers(Pageable pageable) {
+        return userRepository.findAll(pageable)
+                .map(this::convertToDTO);
     }
 
     /**

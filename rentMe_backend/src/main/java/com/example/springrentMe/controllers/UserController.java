@@ -1,12 +1,16 @@
 package com.example.springrentMe.controllers;
 
 import com.example.springrentMe.DTOs.ChangePasswordRequest;
+import com.example.springrentMe.DTOs.PageResponse;
 import com.example.springrentMe.DTOs.UpdateUserRequest;
 import com.example.springrentMe.DTOs.UserDTO;
 import com.example.springrentMe.security.UserDetailsImpl;
 import com.example.springrentMe.services.UserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -50,9 +54,11 @@ public class UserController {
      */
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping
-    public ResponseEntity<List<UserDTO>> getAllUsers() {
-        List<UserDTO> users = userService.getAllUsers();
-        return ResponseEntity.ok(users);
+    public ResponseEntity<PageResponse<UserDTO>> getAllUsers(
+            @RequestParam(defaultValue = "0")    int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        return ResponseEntity.ok(PageResponse.of(userService.getAllUsers(pageable)));
     }
 
     /**

@@ -80,28 +80,41 @@ export default function AdminVehiclesPage() {
   const [vehicleToDelete, setVehicleToDelete] = useState<Vehicle | null>(null);
   const [isActionPending, setIsActionPending] = useState(false);
 
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
+
   // Fetch
   const fetchVehicles = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const data = await getAllVehiclesAdmin();
+      const response = await getAllVehiclesAdmin(currentPage, 10);
+      const data = response.data;
       // Sort by newest
       data.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       setVehicles(data);
+      setTotalPages(response.meta.totalPages);
+      setTotalElements(response.meta.totalElements);
     } catch (err: any) {
       setError(err.message || 'Failed to load vehicles');
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [currentPage]);
 
   useEffect(() => {
     fetchVehicles();
   }, [fetchVehicles]);
 
+  // Reset page when filtering changes
+  useEffect(() => {
+    setCurrentPage(0);
+  }, [query, selectedType, selectedStatus]);
+
   // Derived lists / Filters
-  const totalVehiclesCount = vehicles.length;
+  const totalVehiclesCount = totalElements;
   const listedCount = vehicles.filter((v) => v.isListed).length;
   const availableCount = vehicles.filter((v) => v.isAvailable && v.isListed).length;
   const averagePrice = vehicles.length > 0 
@@ -439,6 +452,34 @@ export default function AdminVehiclesPage() {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Pagination controls */}
+        <div className="flex items-center justify-between px-4 py-3 border-t bg-muted/10">
+          <div className="text-xs text-muted-foreground">
+            Showing {totalElements === 0 ? 0 : currentPage * 10 + 1} to {Math.min((currentPage + 1) * 10, totalElements)} of {totalElements} vehicles
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 0))}
+              disabled={currentPage === 0 || isLoading}
+            >
+              Previous
+            </Button>
+            <div className="text-xs font-medium px-2">
+              Page {currentPage + 1} of {totalPages || 1}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages - 1))}
+              disabled={currentPage >= totalPages - 1 || isLoading}
+            >
+              Next
+            </Button>
+          </div>
         </div>
       </Card>
 

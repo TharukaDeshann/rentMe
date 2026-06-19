@@ -10,6 +10,8 @@ import com.example.springrentMe.repositories.VehicleOwnerRepository;
 import com.example.springrentMe.repositories.VehicleRepository;
 import com.example.springrentMe.security.UserDetailsImpl;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -276,26 +278,22 @@ public class BookingService {
      * Get all bookings for the authenticated renter.
      */
     @Transactional(readOnly = true)
-    public List<BookingResponseDTO> getMyBookingsAsRenter() {
+    public Page<BookingResponseDTO> getMyBookingsAsRenter(Pageable pageable) {
         Renter renter = getRenterForCurrentUser();
         return bookingRepository
-                .findByRenter_RenterIdOrderByCreatedAtDesc(renter.getRenterId())
-                .stream()
-                .map(this::convertToResponseDTO)
-                .collect(Collectors.toList());
+                .findByRenter_RenterIdOrderByCreatedAtDesc(renter.getRenterId(), pageable)
+                .map(this::convertToResponseDTO);
     }
 
     /**
      * Get all bookings for vehicles owned by the authenticated owner.
      */
     @Transactional(readOnly = true)
-    public List<BookingResponseDTO> getMyBookingsAsOwner() {
+    public Page<BookingResponseDTO> getMyBookingsAsOwner(Pageable pageable) {
         VehicleOwner owner = getOwnerForCurrentUser();
         return bookingRepository
-                .findByVehicleOwnerIdOrderByCreatedAtDesc(owner.getVehicleOwnerId())
-                .stream()
-                .map(this::convertToResponseDTO)
-                .collect(Collectors.toList());
+                .findByVehicleOwnerIdOrderByCreatedAtDesc(owner.getVehicleOwnerId(), pageable)
+                .map(this::convertToResponseDTO);
     }
 
     /**
@@ -303,13 +301,11 @@ public class BookingService {
      * queue).
      */
     @Transactional(readOnly = true)
-    public List<BookingResponseDTO> getPendingRequestsForOwner() {
+    public Page<BookingResponseDTO> getPendingRequestsForOwner(Pageable pageable) {
         VehicleOwner owner = getOwnerForCurrentUser();
         return bookingRepository
-                .findPendingRequestsByOwnerId(owner.getVehicleOwnerId())
-                .stream()
-                .map(this::convertToResponseDTO)
-                .collect(Collectors.toList());
+                .findPendingRequestsByOwnerId(owner.getVehicleOwnerId(), pageable)
+                .map(this::convertToResponseDTO);
     }
 
     /**
@@ -327,11 +323,9 @@ public class BookingService {
      * Admin: get all bookings in the system.
      */
     @Transactional(readOnly = true)
-    public List<BookingResponseDTO> getAllBookings() {
-        return bookingRepository.findAll()
-                .stream()
-                .map(this::convertToResponseDTO)
-                .collect(Collectors.toList());
+    public Page<BookingResponseDTO> getAllBookings(Pageable pageable) {
+        return bookingRepository.findAll(pageable)
+                .map(this::convertToResponseDTO);
     }
 
     // ─────────────────────────────────────────────────────────────────────────

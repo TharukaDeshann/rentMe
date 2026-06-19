@@ -60,7 +60,7 @@ export function ChatInterface({ sessionId, onClose, readOnly = false }: ChatInte
       setLoadingMessages(true);
       const data = await getMessages(sessionId, pageToLoad, 30);
       
-      const newMessages = data.content || [];
+      const newMessages = data.data || [];
       
       setMessages((prev) => {
         if (append) {
@@ -74,7 +74,7 @@ export function ChatInterface({ sessionId, onClose, readOnly = false }: ChatInte
         }
       });
 
-      setHasMore(!data.last);
+      setHasMore(!data.meta.last);
     } catch (err) {
       console.error("Failed to load messages:", err);
     } finally {

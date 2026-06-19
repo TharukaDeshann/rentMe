@@ -5,6 +5,7 @@ import {
   VehicleReviewSummaryDTO,
   OwnerReviewSummaryDTO,
 } from "@/types/review";
+import { PageResponse } from "@/types/pagination";
 
 /**
  * POST /api/v1/reviews — Create a review (Renter only)
@@ -38,10 +39,10 @@ export const getReviewsByVehicle = async (
   vehicleId: number | string
 ): Promise<ReviewResponseDTO[]> => {
   try {
-    const response = await apiClient.get<ReviewResponseDTO[]>(
+    const response = await apiClient.get<PageResponse<ReviewResponseDTO>>(
       `/public/reviews/vehicle/${vehicleId}`
     );
-    return response.data;
+    return response.data.data;
   } catch (error) {
     throw new Error(getErrorMessage(error));
   }
@@ -98,9 +99,14 @@ export const getOwnerReviewSummary = async (
 /**
  * GET /api/v1/admin/reviews — List all reviews (Admin only)
  */
-export const getAllReviewsAdmin = async (): Promise<ReviewResponseDTO[]> => {
+export const getAllReviewsAdmin = async (
+  page?: number,
+  size?: number
+): Promise<PageResponse<ReviewResponseDTO>> => {
   try {
-    const response = await apiClient.get<ReviewResponseDTO[]>("/admin/reviews");
+    const response = await apiClient.get<PageResponse<ReviewResponseDTO>>("/admin/reviews", {
+      params: { page, size },
+    });
     return response.data;
   } catch (error) {
     throw new Error(getErrorMessage(error));

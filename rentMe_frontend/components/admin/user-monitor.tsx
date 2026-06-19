@@ -114,66 +114,70 @@ function UserRow({ user, onViewDetails, onSendMessage, isSendingMessage }: UserR
 
   return (
     <div
-      className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors border-b border-border last:border-0 cursor-pointer group"
+      className="flex items-center gap-4 px-4 py-3 hover:bg-muted/50 transition-colors border-b border-border last:border-0 cursor-pointer group"
       onClick={() => onViewDetails(user)}
       role="button"
       tabIndex={0}
       onKeyDown={(e) => e.key === 'Enter' && onViewDetails(user)}
       title={`View ${user.fullName}'s profile`}
     >
-      {/* Avatar */}
-      <Avatar className="h-9 w-9 shrink-0 border">
-        {user.profilePicture ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={user.profilePicture}
-            alt={user.fullName}
-            className="h-full w-full rounded-full object-cover"
-          />
-        ) : (
-          <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
-            {getInitials(user.fullName)}
-          </AvatarFallback>
-        )}
-      </Avatar>
-
-      {/* Name + email */}
-      <div className="flex-1 min-w-0">
-        <p className="font-medium text-foreground truncate text-sm">{user.fullName}</p>
-        <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+      {/* User (column 1) */}
+      <div className="flex items-center gap-3 flex-1 min-w-0">
+        <Avatar className="h-9 w-9 shrink-0 border">
+          {user.profilePicture ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={user.profilePicture}
+              alt={user.fullName}
+              className="h-full w-full rounded-full object-cover"
+            />
+          ) : (
+            <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
+              {getInitials(user.fullName)}
+            </AvatarFallback>
+          )}
+        </Avatar>
+        <div className="min-w-0">
+          <p className="font-medium text-foreground truncate text-sm">{user.fullName}</p>
+          <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+        </div>
       </div>
 
-      {/* Role badge */}
-      <Badge
-        variant="outline"
-        className={`text-[11px] shrink-0 hidden sm:flex ${getRoleColor(user.role)}`}
-      >
-        {getRoleLabel(user.role)}
-      </Badge>
-
-      {/* Verification badge (owner only) */}
-      <div className="shrink-0 hidden md:block">
-        {getVerificationBadge(user)}
+      {/* Role badge (column 2) */}
+      <div className="w-24 shrink-0 hidden sm:flex items-center">
+        <Badge
+          variant="outline"
+          className={`text-[11px] ${getRoleColor(user.role)}`}
+        >
+          {getRoleLabel(user.role)}
+        </Badge>
       </div>
 
-      {/* Status badge */}
-      <span
-        className={`hidden lg:inline-flex text-[10px] font-semibold px-1.5 py-0.5 rounded-full border shrink-0 ${
-          user.isActive !== false
-            ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400"
-            : "bg-destructive/5 text-destructive border-destructive/20"
-        }`}
-      >
-        {user.isActive !== false ? "Active" : "Inactive"}
-      </span>
+      {/* Verification badge (owner only) (column 3) */}
+      <div className="w-24 shrink-0 hidden md:flex items-center">
+        {getVerificationBadge(user) || <span className="text-xs text-muted-foreground">—</span>}
+      </div>
 
-      {/* Member since */}
-      <span className="text-xs text-muted-foreground shrink-0 hidden xl:block">
+      {/* Status badge (column 4) */}
+      <div className="w-20 shrink-0 hidden lg:flex items-center">
+        <span
+          className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full border ${
+            user.isActive !== false
+              ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400"
+              : "bg-destructive/5 text-destructive border-destructive/20"
+          }`}
+        >
+          {user.isActive !== false ? "Active" : "Inactive"}
+        </span>
+      </div>
+
+      {/* Member since (column 5) */}
+      <div className="w-32 shrink-0 hidden xl:flex items-center text-xs text-muted-foreground">
         {formatDate(user.createdAt)}
-      </span>
+      </div>
 
-      {/* Actions */}
-      <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+      {/* Actions (column 6) */}
+      <div className="w-52 shrink-0 flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
         {!isAdmin && (
           <Button
             variant="ghost"
@@ -246,13 +250,19 @@ export function UserMonitor() {
   const [detailUser, setDetailUser] = useState<User | null>(null);
   const [messagingUserId, setMessagingUserId] = useState<number | null>(null);
 
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
+
   // ── Fetch ──────────────────────────────────────────────────────────────────
 
   const fetchUsers = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const data = await getAllUsers();
+      const response = await getAllUsers(currentPage, 10);
+      const data = response.data;
       // Sort: active first, then by name
       data.sort((a, b) => {
         if ((a.isActive !== false) !== (b.isActive !== false)) {
@@ -261,16 +271,23 @@ export function UserMonitor() {
         return (a.fullName ?? "").localeCompare(b.fullName ?? "");
       });
       setUsers(data);
+      setTotalPages(response.meta.totalPages);
+      setTotalElements(response.meta.totalElements);
     } catch (err: any) {
       setError(err.message || "Failed to load users");
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [currentPage]);
 
   useEffect(() => {
     fetchUsers();
   }, [fetchUsers]);
+
+  // Reset page when filtering changes
+  useEffect(() => {
+    setCurrentPage(0);
+  }, [activeTab, query]);
 
   // ── Derived lists ──────────────────────────────────────────────────────────
 
@@ -347,7 +364,7 @@ export function UserMonitor() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           label="Total Users"
-          value={users.length}
+          value={totalElements}
           icon={<UserIcon className="h-4 w-4 text-primary" />}
           accent="bg-primary/10"
         />
@@ -396,34 +413,33 @@ export function UserMonitor() {
         onValueChange={(v) => setActiveTab(v as typeof activeTab)}
       >
         <TabsList>
-          <TabsTrigger value="all">All ({users.length})</TabsTrigger>
-          <TabsTrigger value="renters">Renters ({renters.length})</TabsTrigger>
-          <TabsTrigger value="owners">Owners ({owners.length})</TabsTrigger>
-          <TabsTrigger value="admins">Admins ({admins.length})</TabsTrigger>
+          <TabsTrigger value="all">All</TabsTrigger>
+          <TabsTrigger value="renters">Renters</TabsTrigger>
+          <TabsTrigger value="owners">Owners</TabsTrigger>
+          <TabsTrigger value="admins">Admins</TabsTrigger>
         </TabsList>
 
         {(["all", "renters", "owners", "admins"] as const).map((tab) => (
           <TabsContent key={tab} value={tab} className="mt-4">
             <Card className="border border-border shadow-none overflow-hidden">
               {/* Table header */}
-              <div className="grid items-center border-b border-border px-4 py-2.5 bg-muted/30"
-                style={{ gridTemplateColumns: "1fr auto auto auto auto auto auto" }}>
-                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              <div className="flex items-center gap-4 border-b border-border px-4 py-2.5 bg-muted/30">
+                <span className="flex-1 min-w-0 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   User
                 </span>
-                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden sm:block pr-3">
+                <span className="w-24 shrink-0 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden sm:block">
                   Role
                 </span>
-                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden md:block pr-3">
+                <span className="w-24 shrink-0 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden md:block">
                   KYC
                 </span>
-                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden lg:block pr-3">
+                <span className="w-20 shrink-0 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden lg:block">
                   Status
                 </span>
-                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden xl:block pr-3">
+                <span className="w-32 shrink-0 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden xl:block">
                   Member since
                 </span>
-                <span className="w-24 text-xs font-semibold text-muted-foreground uppercase tracking-wider text-right">
+                <span className="w-52 shrink-0 text-xs font-semibold text-muted-foreground uppercase tracking-wider text-right pr-2">
                   Actions
                 </span>
               </div>
@@ -449,6 +465,34 @@ export function UserMonitor() {
                   </div>
                 )}
               </CardContent>
+
+              {/* Pagination controls */}
+              <div className="flex items-center justify-between px-4 py-3 border-t bg-muted/10">
+                <div className="text-xs text-muted-foreground">
+                  Showing {totalElements === 0 ? 0 : currentPage * 10 + 1} to {Math.min((currentPage + 1) * 10, totalElements)} of {totalElements} users
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 0))}
+                    disabled={currentPage === 0 || isLoading}
+                  >
+                    Previous
+                  </Button>
+                  <div className="text-xs font-medium px-2">
+                    Page {currentPage + 1} of {totalPages || 1}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages - 1))}
+                    disabled={currentPage >= totalPages - 1 || isLoading}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
             </Card>
           </TabsContent>
         ))}

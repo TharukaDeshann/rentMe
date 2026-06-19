@@ -35,7 +35,7 @@ export function ChatSessionList({
       const data = isAdmin
         ? await getAllSessionsSystemWide(0, 50)
         : await getMySessions(0, 50);
-      setSessions(data.content || []);
+      setSessions(data.data || []);
     } catch (err: any) {
       setError(err.message || "Failed to load chat sessions");
     } finally {

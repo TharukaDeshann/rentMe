@@ -1,5 +1,6 @@
 import apiClient, { getErrorMessage } from "@/lib/api/axios";
 import { Vehicle, VehicleType } from "@/types/booking";
+import { PageResponse } from "@/types/pagination";
 
 /**
  * GET /public/vehicles — list available vehicles with optional filters
@@ -13,10 +14,10 @@ export const getAvailableVehicles = async (
     if (type) params.type = type;
     if (maxPrice !== undefined) params.maxPrice = String(maxPrice);
 
-    const response = await apiClient.get<Vehicle[]>("/public/vehicles", {
+    const response = await apiClient.get<PageResponse<Vehicle>>("/public/vehicles", {
       params,
     });
-    return response.data;
+    return response.data.data;
   } catch (error) {
     throw new Error(getErrorMessage(error));
   }
@@ -46,10 +47,10 @@ export const getVehiclesInBounds = async (
   maxLng: number
 ): Promise<Vehicle[]> => {
   try {
-    const response = await apiClient.get<Vehicle[]>("/public/vehicles/map", {
+    const response = await apiClient.get<PageResponse<Vehicle>>("/public/vehicles/map", {
       params: { minLat, maxLat, minLng, maxLng },
     });
-    return response.data;
+    return response.data.data;
   } catch (error) {
     throw new Error(getErrorMessage(error));
   }
@@ -60,8 +61,8 @@ export const getVehiclesInBounds = async (
  */
 export const getMyVehiclesAsOwner = async (): Promise<Vehicle[]> => {
   try {
-    const response = await apiClient.get<Vehicle[]>("/owner/vehicles");
-    return response.data;
+    const response = await apiClient.get<PageResponse<Vehicle>>("/owner/vehicles");
+    return response.data.data;
   } catch (error) {
     throw new Error(getErrorMessage(error));
   }
@@ -117,9 +118,14 @@ export const deleteVehicle = async (vehicleId: number | string): Promise<void> =
 /**
  * GET /admin/vehicles — list all vehicles for admin regardless of status
  */
-export const getAllVehiclesAdmin = async (): Promise<Vehicle[]> => {
+export const getAllVehiclesAdmin = async (
+  page?: number,
+  size?: number
+): Promise<PageResponse<Vehicle>> => {
   try {
-    const response = await apiClient.get<Vehicle[]>("/admin/vehicles");
+    const response = await apiClient.get<PageResponse<Vehicle>>("/admin/vehicles", {
+      params: { page, size },
+    });
     return response.data;
   } catch (error) {
     throw new Error(getErrorMessage(error));

@@ -84,43 +84,56 @@ export default function AdminReviewsPage() {
   const [reviewToDelete, setReviewToDelete] = useState<ReviewResponseDTO | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
+
   // ─── Fetch All Data ────────────────────────────────────────────────────────
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      // 1. Fetch all reviews (Admin endpoint)
-      const reviewsData = await reviewService.getAllReviewsAdmin();
+      // 1. Fetch reviews page (Admin endpoint)
+      const response = await reviewService.getAllReviewsAdmin(currentPage, 10);
+      const reviewsData = response.data;
       
       // 2. Sort reviews: newest first
       reviewsData.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       setReviews(reviewsData);
+      setTotalPages(response.meta.totalPages);
+      setTotalElements(response.meta.totalElements);
 
       // 3. Fetch auxiliary mapping lists
-      const [vehiclesData, usersData] = await Promise.all([
+      const [vehiclesData, usersRes] = await Promise.all([
         vehicleService.getAvailableVehicles().catch((err) => {
           console.error("Failed to load vehicles metadata", err);
           return [] as Vehicle[];
         }),
-        userService.getAllUsers().catch((err) => {
+        userService.getAllUsers(0, 100).catch((err) => {
           console.error("Failed to load users metadata", err);
-          return [] as User[];
+          return { data: [] } as any;
         })
       ]);
 
       setVehicles(vehiclesData);
-      setUsers(usersData);
+      setUsers(usersRes.data);
     } catch (err: any) {
       setError(err.message || "Failed to load reviews dashboard");
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [currentPage]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // Reset page when filtering changes
+  useEffect(() => {
+    setCurrentPage(0);
+  }, [searchQuery, selectedRating, selectedVehicle, selectedOwner]);
 
   // ─── Mappings Helpers ──────────────────────────────────────────────────────
 
@@ -562,6 +575,34 @@ export default function AdminReviewsPage() {
             </table>
           </div>
         </CardContent>
+
+        {/* Pagination controls */}
+        <div className="flex items-center justify-between px-4 py-3 border-t bg-muted/10">
+          <div className="text-xs text-muted-foreground">
+            Showing {totalElements === 0 ? 0 : currentPage * 10 + 1} to {Math.min((currentPage + 1) * 10, totalElements)} of {totalElements} reviews
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 0))}
+              disabled={currentPage === 0 || isLoading}
+            >
+              Previous
+            </Button>
+            <div className="text-xs font-medium px-2">
+              Page {currentPage + 1} of {totalPages || 1}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages - 1))}
+              disabled={currentPage >= totalPages - 1 || isLoading}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
       </Card>
 
       {/* Moderation Deletion Confirm Modal */}

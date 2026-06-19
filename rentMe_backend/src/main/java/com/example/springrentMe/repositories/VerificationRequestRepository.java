@@ -2,6 +2,8 @@ package com.example.springrentMe.repositories;
 
 import com.example.springrentMe.models.VerificationRequest;
 import com.example.springrentMe.models.VerificationStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -13,12 +15,14 @@ public interface VerificationRequestRepository extends JpaRepository<Verificatio
 
     // All requests for one owner (history)
     List<VerificationRequest> findByVehicleOwner_VehicleOwnerIdOrderBySubmittedAtDesc(Long vehicleOwnerId);
+    Page<VerificationRequest> findByVehicleOwner_VehicleOwnerIdOrderBySubmittedAtDesc(Long vehicleOwnerId, Pageable pageable);
 
     // Latest request for one owner
     Optional<VerificationRequest> findTopByVehicleOwner_VehicleOwnerIdOrderBySubmittedAtDesc(Long vehicleOwnerId);
 
     // All requests with a given status (admin queue)
     List<VerificationRequest> findByStatusOrderBySubmittedAtAsc(VerificationStatus status);
+    Page<VerificationRequest> findByStatusOrderBySubmittedAtAsc(VerificationStatus status, Pageable pageable);
 
     // Check if any PENDING request exists for an owner
     boolean existsByVehicleOwner_VehicleOwnerIdAndStatus(Long vehicleOwnerId, VerificationStatus status);
